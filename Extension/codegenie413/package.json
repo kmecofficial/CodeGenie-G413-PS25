@@ -1,0 +1,36 @@
+{
+  "name": "codegenie",
+  "displayName": "CodeGenie",
+  "description": "AI coding assistant",
+  "version": "1.0.0",
+  "engines": {"vscode": "^1.85.0"},
+  "categories": ["Programming Languages"],
+  "activationEvents": ["onCommand:codegenie.generate"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [{
+      "command": "codegenie.generate",
+      "title": "Generate Code (Ctrl+G)",
+      "category": "CodeGenie"
+    }],
+    "keybindings": [{
+      "command": "codegenie.generate",
+      "key": "ctrl+g",
+      "mac": "cmd+g",
+      "when": "editorTextFocus"
+    }]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.19",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.2"
+  },
+  "dependencies": {
+    "axios": "^1.6.2"
+  }
+}
