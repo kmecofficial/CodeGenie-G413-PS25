@@ -9,8 +9,16 @@ CORS(app)
 def generate_snippet():
     try:
         data = request.get_json()
+        print("the data is:\n")
+        print(data)
+
         context = data.get("context", "")
+        print("Context is :\n")
+        print(context)
+
         language = data.get("language", "python")
+        print("Language is:\n")
+        print(language)
 
         if not context:
             return jsonify({"error": "Context is required"}), 400
