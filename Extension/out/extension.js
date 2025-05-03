@@ -72,53 +72,128 @@ function getWebviewContent() {
         <style>
             body {
                 font-family: 'Segoe UI', sans-serif;
-                margin: 20px;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+                height: 100vh;
+                color: black;
             }
+
+            #chat {
+                flex: 1;
+                padding: 20px;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                background: #f9f9f9;
+            }
+
+            .message {
+                max-width: 70%;
+                padding: 10px;
+                border-radius: 10px;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                color: black;
+            }
+
+            .user {
+                align-self: flex-end;
+                background-color: #d1e7ff;
+                border-top-right-radius: 0;
+            }
+
+            .bot {
+                align-self: flex-start;
+                background-color: #e6e6e6;
+                border-top-left-radius: 0;
+            }
+
+            #inputBar {
+                display: flex;
+                padding: 10px;
+                background-color: #fff;
+                border-top: 1px solid #ccc;
+            }
+
             textarea {
-                width: 100%;
-                height: 100px;
+                flex: 1;
+                resize: none;
+                height: 50px;
+                padding: 10px;
+                border-radius: 8px;
                 font-size: 14px;
-                padding: 8px;
+                border: 1px solid #ccc;
+                margin-right: 10px;
+                color: black;
+                background-color: white;
             }
+
             button {
-                margin-top: 10px;
-                padding: 8px 16px;
+                padding: 10px 16px;
                 font-size: 14px;
                 background-color: #007acc;
                 color: white;
                 border: none;
-                border-radius: 4px;
+                border-radius: 8px;
                 cursor: pointer;
+                transition: transform 0.2s ease;
             }
-            pre {
-                margin-top: 20px;
-                background-color: #f3f3f3;
-                color:black;
-                padding: 10px;
-                border-radius: 4px;
-                overflow-x: auto;
+
+            button:hover {
+                transform: scale(1.05);
             }
         </style>
     </head>
     <body>
-        <h2>Ask CodeGenie ✨</h2>
-        <textarea id="input" placeholder="Describe the code you want..."></textarea><br/>
-        <button onclick="generate()">Generate</button>
-        <pre id="result"></pre>
+        <div id="chat"></div>
+
+        <div id="inputBar">
+            <textarea id="input" placeholder="Type your prompt..."></textarea>
+            <button onclick="send()">➤</button>
+        </div>
 
         <script>
             const vscode = acquireVsCodeApi();
-            function generate() {
-                const text = document.getElementById('input').value;
+
+            function addMessage(text, sender) {
+                const msg = document.createElement('div');
+                msg.className = 'message ' + sender;
+                msg.textContent = text;
+                document.getElementById('chat').appendChild(msg);
+                msg.scrollIntoView({ behavior: 'smooth' });
+                return msg; 
+            }
+
+            function send() {
+                const input = document.getElementById('input');
+                const text = input.value.trim();
+                if (!text) return;
+
+                addMessage(text, 'user');
+                input.value = '';
+                const loadingMsg = addMessage("Generating response...", 'bot');
+                loadingMsg.id = "loading";
                 vscode.postMessage({ command: 'generate', text: text });
+
+                                
             }
 
             window.addEventListener('message', event => {
                 const message = event.data;
                 if (message.command === 'result') {
-                    document.getElementById('result').textContent = message.code;
+                    const oldMsg = document.getElementById('loading');
+                    if (oldMsg) {
+                        oldMsg.textContent = message.code;
+                        oldMsg.removeAttribute('id');
+                    } else {
+                        addMessage(message.code, 'bot');
+                    }
                 }
             });
+
         </script>
     </body>
     </html>
