@@ -44,7 +44,8 @@ function activate(context) {
         const panel = vscode.window.createWebviewPanel('codegeniePanel', 'CodeGenie ✨', vscode.ViewColumn.Beside, {
             enableScripts: true
         });
-        panel.webview.html = getWebviewContent();
+        const logoUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'logo.png'));
+        panel.webview.html = getWebviewContent(logoUri.toString());
         panel.webview.onDidReceiveMessage(async (message) => {
             if (message.command === 'generate') {
                 try {
@@ -63,7 +64,7 @@ function activate(context) {
     });
     context.subscriptions.push(disposable);
 }
-function getWebviewContent() {
+function getWebviewContent(logoSrc) {
     return `
     <!DOCTYPE html>
     <html lang="en">
@@ -87,8 +88,10 @@ function getWebviewContent() {
                 display: flex;
                 flex-direction: column;
                 gap: 10px;
-                background: #f9f9f9;
-            }
+                background: #f9f9f9 url('${logoSrc}') center center no-repeat;
+                background-size: 200px; /* Adjust size as needed */
+                opacity: 1;
+                }
 
             .message {
                 max-width: 70%;
