@@ -6,7 +6,11 @@ __pycache__/
 # C extensions
 *.so
 
+#new adds
 node_modules/
+.vscode/
+.idea/
+.env.local
 
 
 # Distribution / packaging
