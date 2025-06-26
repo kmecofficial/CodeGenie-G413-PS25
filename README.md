@@ -69,4 +69,16 @@ A fine-tuned variant designed for:
 - Multi-step code generation workflows  
 - Intelligent error resolution and API usage hints  
 
+## 👥 Contributors Overview
+| Name                    | GitHub                                                | Milestone 1 Video                                                               | Milestone 2 Video | PPT Download                                  |
+|-------------------------|--------------------------------------------------------|----------------------------------------------------------------------------------|-------------------|-----------------------------------------------|
+| M SAI GANESH            | [TrippyBerserker](https://github.com/TrippyBerserker) | [Watch](https://www.youtube.com/watch?v=NhzSBC6Rq6s)                            | null              | [Download](<./docs/md.pptx>)      |
+| OMKAR M SHEWALKAR       | [OmKaR936](https://github.com/OmKaR936)            | [Watch](https://www.youtube.com/watch?v=4FiX_oOJs-Y)                       | null              | [Download](<./docs/G413_presentation.pptx>)       |
+| PUNDRU MAHITA           | [PundruMahita](https://github.com/PundruMahita)            | [Watch](https://drive.google.com/file/d/1bcEJ2ymcPYUDBz4XIxyNQn7FiIls57pm/view)                                           | null              | [Download](<./docs/ms.pdf>)           |
+| VANDANAPU ASHWITA       | [ASHWITA1](https://github.com/ASHWITA1)      | [Watch](https://drive.google.com/file/d/1Bn-sY1d0I1MYO4cjjabBH-VBf8obFzeu/view)                       | null              | [Download](<./docs/ma.pdf>)       |
+| KANDIBANDA SATHWIKA     | [Sathwikaaaaa](https://github.com/Sathwikaaaaa)      | [Watch](https://drive.google.com/file/d/1hjVDyj3TcsIAcH8JfCJogsgIYgILlWr1/view?usp=sharing)                       | null              | [Download](<./docs/mf.pptx>)          |
+| KANISHKA GUPTA          | [KanishkaG-14](https://github.com/KanishkaG-14)      | [Watch]()                            | null              | [Download](<./docs/>)      |
+
+
 ---
+🔥 Get ready to build the future of **AI-powered development** with **CodeGenie**! 
