@@ -40,10 +40,15 @@ exports.activate = activate;
 const vscode = __importStar(require("vscode"));
 const axios_1 = __importDefault(require("axios"));
 const webviewContent_1 = require("./webviewContent");
+const path = __importStar(require("path"));
 function activate(context) {
     let disposable = vscode.commands.registerCommand('codegenie.generateSnippet', () => {
         const panel = vscode.window.createWebviewPanel('codegeniePanel', 'CodeGenie ✨', vscode.ViewColumn.Beside, { enableScripts: true });
-        const logoUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'logo.png'));
+        // const logoUri = panel.webview.asWebviewUri(
+        //     vscode.Uri.joinPath(context.extensionUri, 'media', 'logo.png')
+        // );
+        const logoPath = vscode.Uri.file(path.join(context.extensionPath, 'media', 'logo.png'));
+        const logoUri = panel.webview.asWebviewUri(logoPath);
         panel.webview.html = (0, webviewContent_1.getWebviewContent)(logoUri.toString());
         panel.webview.onDidReceiveMessage(async (message) => {
             if (message.command === 'generate') {

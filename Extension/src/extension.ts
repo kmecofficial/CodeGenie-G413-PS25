@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
 import { getWebviewContent } from './webviewContent';
+import * as path from 'path';
+
 
 export function activate(context: vscode.ExtensionContext) {
     let disposable = vscode.commands.registerCommand('codegenie.generateSnippet', () => {
@@ -11,9 +13,15 @@ export function activate(context: vscode.ExtensionContext) {
             { enableScripts: true }
         );
 
-        const logoUri = panel.webview.asWebviewUri(
-            vscode.Uri.joinPath(context.extensionUri, 'media', 'logo.png')
+        // const logoUri = panel.webview.asWebviewUri(
+        //     vscode.Uri.joinPath(context.extensionUri, 'media', 'logo.png')
+        // );
+
+        const logoPath = vscode.Uri.file(
+            path.join(context.extensionPath, 'media', 'logo.png')
         );
+        const logoUri = panel.webview.asWebviewUri(logoPath);
+
 
         panel.webview.html = getWebviewContent(logoUri.toString());
 
