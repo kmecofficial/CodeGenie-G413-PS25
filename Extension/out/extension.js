@@ -43,7 +43,7 @@ const webviewContent_1 = require("./webviewContent");
 const path = __importStar(require("path"));
 function activate(context) {
     let disposable = vscode.commands.registerCommand('codegenie.generateSnippet', () => {
-        const panel = vscode.window.createWebviewPanel('codegeniePanel', 'CodeGenie ✨', vscode.ViewColumn.Beside, { enableScripts: true });
+        const panel = vscode.window.createWebviewPanel('codegeniePanel', 'CodeGenie', vscode.ViewColumn.Beside, { enableScripts: true });
         // const logoUri = panel.webview.asWebviewUri(
         //     vscode.Uri.joinPath(context.extensionUri, 'media', 'logo.png')
         // );

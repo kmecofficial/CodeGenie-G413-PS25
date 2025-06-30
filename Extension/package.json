@@ -4,7 +4,7 @@
   "description": "AI model to help you",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.99.0"
+    "vscode": "^1.88.0"
   },
   "categories": [
     "Other"
@@ -37,14 +37,14 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
-    "@types/vscode": "^1.99.0",
+    "@types/vscode": "^1.88.0",
     "@typescript-eslint/eslint-plugin": "^8.28.0",
     "@typescript-eslint/parser": "^8.28.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1",
     "eslint": "^9.23.0",
     "typescript": "^5.8.3",
-    "vscode":"^1.99.0"
+    "vscode": "^1.1.37"
   },
   "dependencies": {
     "axios": "^1.8.4"

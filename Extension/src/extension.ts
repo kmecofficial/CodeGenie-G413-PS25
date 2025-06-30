@@ -8,7 +8,7 @@ export function activate(context: vscode.ExtensionContext) {
     let disposable = vscode.commands.registerCommand('codegenie.generateSnippet', () => {
         const panel = vscode.window.createWebviewPanel(
             'codegeniePanel',
-            'CodeGenie ✨',
+            'CodeGenie',
             vscode.ViewColumn.Beside,
             { enableScripts: true }
         );

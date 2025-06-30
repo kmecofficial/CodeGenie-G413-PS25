@@ -6,7 +6,8 @@ export function getWebviewContent(logoSrc: string): string {
         <meta charset="UTF-8">
         <style>
             body {
-                font-family: 'Segoe UI', sans-serif;
+                font-family: 'Fira Sans','Segoe UI', sans-serif;
+                font-size: 14px;
                 margin: 0;
                 padding: 0;
                 display: flex;
@@ -34,6 +35,7 @@ export function getWebviewContent(logoSrc: string): string {
                 white-space: pre-wrap;
                 word-wrap: break-word;
                 color: black;
+                position: relative;
             }
 
             .user {
@@ -82,6 +84,22 @@ export function getWebviewContent(logoSrc: string): string {
             button:hover {
                 transform: scale(1.05);
             }
+            .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #ccc;
+            border-top: 3px solid #007acc;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 10px;
+            }
+
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+
         </style>
     </head>
     <body>
@@ -111,25 +129,77 @@ export function getWebviewContent(logoSrc: string): string {
 
                 addMessage(text, 'user');
                 input.value = '';
-                const loadingMsg = addMessage("Generating response...", 'bot');
-                loadingMsg.id = "loading";
-                vscode.postMessage({ command: 'generate', text: text });
 
-                                
+                const loadingMsg = addMessage("Generating response...", 'bot');
+                const spinner = document.createElement('span');
+                spinner.className = 'spinner';
+                spinner.id = 'spinner';
+                loadingMsg.appendChild(spinner);
+                loadingMsg.id = "loading";
+
+                loadingMsg.id = "loading";
+                vscode.postMessage({ command: 'generate', text: text });                     
             }
 
-            window.addEventListener('message', event => {
-                const message = event.data;
-                if (message.command === 'result') {
-                    const oldMsg = document.getElementById('loading');
-                    if (oldMsg) {
-                        oldMsg.textContent = message.code;
-                        oldMsg.removeAttribute('id');
-                    } else {
-                        addMessage(message.code, 'bot');
-                    }
+            function createCopyButton(text) {
+                const btn = document.createElement('button');
+                btn.textContent = '📋';
+                btn.title = 'Copy to clipboard';
+
+                btn.style.position = 'absolute';
+                btn.style.top = '8px';
+                btn.style.right = '8px';
+                btn.style.padding = '4px 6px';
+                btn.style.fontSize = '12px';
+                btn.style.backgroundColor = '#f3f3f3';
+                btn.style.border = '1px solid #ccc';
+                btn.style.borderRadius = '4px';
+                btn.style.cursor = 'pointer';
+                btn.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.1)';
+
+                btn.onclick = () => {
+                    navigator.clipboard.writeText(text);
+                    btn.textContent = '✅';
+                    setTimeout(() => { btn.textContent = '📋'; }, 1500);
+                };
+
+                return btn;
+            }
+
+           window.addEventListener('message', event => {
+            const message = event.data;
+            if (message.command === 'result') {
+                const oldMsg = document.getElementById('loading');
+                if (oldMsg) {
+                    // Clear the loading message content (and spinner)
+                    oldMsg.textContent = '';
+
+                    // Create code block
+                    const codeBlock = document.createElement('pre');
+                    codeBlock.textContent = message.code;
+                    codeBlock.style.whiteSpace = 'pre-wrap';
+                    codeBlock.style.margin = '0';
+
+                    // Add copy button
+                    const copyBtn = createCopyButton(message.code);
+
+                    // Append nicely formatted elements
+                    oldMsg.appendChild(codeBlock);
+                    oldMsg.appendChild(copyBtn);
+                    oldMsg.removeAttribute('id');
+                } else {
+                    const msg = addMessage('', 'bot');
+                    const codeBlock = document.createElement('pre');
+                    codeBlock.textContent = message.code;
+                    codeBlock.style.whiteSpace = 'pre-wrap';
+                    codeBlock.style.margin = '0';
+
+                    const copyBtn = createCopyButton(message.code);
+                    msg.appendChild(codeBlock);
+                    msg.appendChild(copyBtn);
                 }
-            });
+            }
+        });
 
         </script>
     </body>
