@@ -16,6 +16,10 @@
       {
         "command": "codegenie.generateSnippet",
         "title": "Generate Code Snippet"
+      },
+      {
+      "command": "codegenie.inlineGenerate",
+      "title": "CodeGenie: Generate Code Inline"
       }
     ],
     "keybindings": [
@@ -23,6 +27,11 @@
         "command": "codegenie.generateSnippet",
         "key": "ctrl+g",
         "when": "editorTextFocus"
+      },
+      {
+      "command": "codegenie.inlineGenerate",
+      "key": "ctrl+1",
+      "when": "editorTextFocus"
       }
     ]
   },
