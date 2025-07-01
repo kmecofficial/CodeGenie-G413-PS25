@@ -12,11 +12,11 @@ try:
         device_map="auto"
     )
 except Exception as e:
-    raise RuntimeError(f"Error loading model : {e}")
+    raise RuntimeError(f"\nError loading model : {e}")
 
 def generate_code(context: str, language: str = "python") -> str:
     if not context or not isinstance(context, str):
-        return "Error: Invalid input context.Empty text given."
+        return "\nError: Invalid input context. Empty text given."
 
     try:
         prompt = (
@@ -43,4 +43,4 @@ def generate_code(context: str, language: str = "python") -> str:
         return match.group(1).strip() if match else generated
 
     except Exception as e:
-        return f"Error during code generation: {str(e)}"
+        return f"\nError during code generation: {str(e)}"
