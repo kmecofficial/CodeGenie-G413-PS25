@@ -13,10 +13,6 @@ export function activate(context: vscode.ExtensionContext) {
             { enableScripts: true }
         );
 
-        // const logoUri = panel.webview.asWebviewUri(
-        //     vscode.Uri.joinPath(context.extensionUri, 'media', 'logo.png')
-        // );
-
         const logoPath = vscode.Uri.file(
             path.join(context.extensionPath, 'media', 'logo.png')
         );
