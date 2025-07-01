@@ -45,4 +45,42 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     context.subscriptions.push(disposable);
+
+    let inlineDisposable = vscode.commands.registerCommand('codegenie.inlineGenerate', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('No active editor found.');
+            return;
+        }
+
+        const selection = editor.selection;
+        const selectedText = editor.document.getText(selection).trim();
+
+        if (!selectedText) {
+            vscode.window.showWarningMessage('Please select a comment line to generate code.');
+            return;
+        }
+
+        try {
+            const response = await axios.post('http://localhost:5000/generate-snippet', {
+                context: selectedText,
+                language: 'python'
+            });
+
+            const generatedCode = response.data.code;
+
+            // Insert generated code below the selected line
+            const insertPosition = selection.end.with(selection.end.line + 1, 0);
+            editor.edit(editBuilder => {
+                editBuilder.insert(insertPosition, generatedCode + '\n');
+            });
+
+        } catch (error) {
+            vscode.window.showErrorMessage('Code generation failed.');
+            console.error(error);
+        }
+    });
+
+    context.subscriptions.push(inlineDisposable);
+
 }
