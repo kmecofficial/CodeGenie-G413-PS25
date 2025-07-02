@@ -25,8 +25,7 @@ def generate_code(context: str, language: str = "python") -> str:
             f"<|user|>\n{context}\n<|assistant|>"
         )
 
-        inputs = tokenizer(prompt, return_tensors='pt')
-        inputs = {k: v.to(model.device) for k, v in inputs.items()}
+        inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
 
         outputs = model.generate(
             **inputs,
@@ -36,11 +35,18 @@ def generate_code(context: str, language: str = "python") -> str:
             do_sample=True
         )
 
-        result = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        generated = result.split("<|assistant|>")[-1].strip()
+        generated = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        print("Raw generated output:\n", generated)
 
         match = re.search(r"```(?:\w+)?\n(.+?)```", generated, re.DOTALL)
-        return match.group(1).strip() if match else generated
+        if match:
+            extracted_code = match.group(1).strip()
+            print("Extracted code block:\n", extracted_code)
+            return extracted_code
+        else:
+            print("No fenced code block found. Returning full output.\n")
+            return generated.strip()
 
     except Exception as e:
+        print("Error during code generation:", str(e))
         return f"\nError during code generation: {str(e)}"

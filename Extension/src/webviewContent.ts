@@ -146,9 +146,9 @@ export function getWebviewContent(logoSrc: string): string {
                 btn.textContent = '📋';
                 btn.title = 'Copy to clipboard';
 
-                btn.style.position = 'absolute';
-                btn.style.top = '8px';
-                btn.style.right = '8px';
+                btn.style.alignSelf = 'flex-end';
+                btn.style.marginTop = '6px';
+
                 btn.style.padding = '4px 6px';
                 btn.style.fontSize = '12px';
                 btn.style.backgroundColor = '#f3f3f3';
@@ -171,32 +171,48 @@ export function getWebviewContent(logoSrc: string): string {
             if (message.command === 'result') {
                 const oldMsg = document.getElementById('loading');
                 if (oldMsg) {
-                    // Clear the loading message content (and spinner)
                     oldMsg.textContent = '';
 
-                    // Create code block
+                    const wrapper = document.createElement('div');
+                    wrapper.style.display = 'flex';
+                    wrapper.style.flexDirection = 'column';
+                    wrapper.style.alignItems = 'flex-end';
+                    wrapper.style.gap = '5px';
+
                     const codeBlock = document.createElement('pre');
                     codeBlock.textContent = message.code;
                     codeBlock.style.whiteSpace = 'pre-wrap';
                     codeBlock.style.margin = '0';
+                    codeBlock.style.alignSelf = 'stretch'; // make code full width
 
-                    // Add copy button
                     const copyBtn = createCopyButton(message.code);
 
-                    // Append nicely formatted elements
-                    oldMsg.appendChild(codeBlock);
-                    oldMsg.appendChild(copyBtn);
+                    wrapper.appendChild(codeBlock);
+                    wrapper.appendChild(copyBtn);
+                    oldMsg.appendChild(wrapper);
                     oldMsg.removeAttribute('id');
+
                 } else {
                     const msg = addMessage('', 'bot');
+
+                    const wrapper = document.createElement('div');
+                    wrapper.style.display = 'flex';
+                    wrapper.style.flexDirection = 'column';
+                    wrapper.style.alignItems = 'flex-end';
+                    wrapper.style.gap = '5px';
+
                     const codeBlock = document.createElement('pre');
                     codeBlock.textContent = message.code;
                     codeBlock.style.whiteSpace = 'pre-wrap';
                     codeBlock.style.margin = '0';
+                    codeBlock.style.alignSelf = 'stretch';
 
                     const copyBtn = createCopyButton(message.code);
-                    msg.appendChild(codeBlock);
-                    msg.appendChild(copyBtn);
+
+                    wrapper.appendChild(codeBlock);
+                    wrapper.appendChild(copyBtn);
+                    msg.appendChild(wrapper);
+
                 }
             }
         });
