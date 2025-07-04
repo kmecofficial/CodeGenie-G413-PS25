@@ -4,34 +4,127 @@
   "description": "AI model to help you",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.88.0"
+    "vscode": "^1.101.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onCommand:codegenie.PanelSuggestions",
+    "onCommand:codegenie.InlineSuggestions",
+    "onCommand:codegenie.inline.insertSolution1",
+    "onCommand:codegenie.inline.deleteSolution1",
+    "onCommand:codegenie.inline.insertSolution2",
+    "onCommand:codegenie.inline.deleteSolution2",
+    "onCommand:codegenie.inline.insertSolution3",
+    "onCommand:codegenie.inline.deleteSolution3",
+    "onCommand:codegenie.inline.revertPrompt",
+    "onCommand:codegenie.generateSnippet",
+    "onCommand:codegenie.inlineGenerate"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
+      {
+        "command": "codegenie.PanelSuggestions",
+        "title": "CodeGenie: Generate Suggestions in Panel"
+      },
+      {
+        "command": "codegenie.InlineSuggestions",
+        "title": "CodeGenie: Generate Suggestions Inline"
+      },
+      {
+        "command": "codegenie.inline.insertSolution1",
+        "title": "CodeGenie Inline: Insert Solution 1"
+      },
+      {
+        "command": "codegenie.inline.deleteSolution1",
+        "title": "CodeGenie Inline: Delete Solution 1"
+      },
+      {
+        "command": "codegenie.inline.insertSolution2",
+        "title": "CodeGenie Inline: Insert Solution 2"
+      },
+      {
+        "command": "codegenie.inline.deleteSolution2",
+        "title": "CodeGenie Inline: Delete Solution 2"
+      },
+      {
+        "command": "codegenie.inline.insertSolution3",
+        "title": "CodeGenie Inline: Insert Solution 3"
+      },
+      {
+        "command": "codegenie.inline.deleteSolution3",
+        "title": "CodeGenie Inline: Delete Solution 3"
+      },
+      {
+        "command": "codegenie.inline.revertPrompt",
+        "title": "CodeGenie Inline: Revert to Original Prompt"
+      },
       {
         "command": "codegenie.generateSnippet",
         "title": "Generate Code Snippet"
       },
       {
-      "command": "codegenie.inlineGenerate",
-      "title": "CodeGenie: Generate Code Inline"
+        "command": "codegenie.inlineGenerate",
+        "title": "CodeGenie: Generate Code Inline"
       }
     ],
     "keybindings": [
       {
-        "command": "codegenie.generateSnippet",
-        "key": "ctrl+g",
+        "command": "codegenie.PanelSuggestions",
+        "key": "ctrl+p",
         "when": "editorTextFocus"
       },
       {
-      "command": "codegenie.inlineGenerate",
-      "key": "ctrl+1",
-      "when": "editorTextFocus"
+        "command": "codegenie.InlineSuggestions",
+        "key": "ctrl+i",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codegenie.inline.insertSolution1",
+        "key": "1",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codegenie.inline.deleteSolution1",
+        "key": "ctrl+1",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codegenie.inline.insertSolution2",
+        "key": "2",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codegenie.inline.deleteSolution2",
+        "key": "ctrl+2",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codegenie.inline.insertSolution3",
+        "key": "3",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codegenie.inline.deleteSolution3",
+        "key": "ctrl+3",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codegenie.inline.revertPrompt",
+        "key": "escape",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codegenie.generateSnippet",
+        "key": "shift+p",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codegenie.inlineGenerate",
+        "key": "shift+i",
+        "when": "editorTextFocus"
       }
     ]
   },
@@ -46,16 +139,16 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
-    "@types/vscode": "^1.88.0",
-    "@typescript-eslint/eslint-plugin": "^8.28.0",
-    "@typescript-eslint/parser": "^8.28.0",
+    "@types/vscode": "^1.101.0",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
     "@vscode/test-cli": "^0.0.10",
-    "@vscode/test-electron": "^2.4.1",
-    "eslint": "^9.23.0",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.25.1",
     "typescript": "^5.8.3",
     "vscode": "^1.1.37"
   },
   "dependencies": {
-    "axios": "^1.8.4"
+    "axios": "^1.10.0"
   }
 }
