@@ -1,136 +1,4 @@
-export function getMultipleSolutionsWebviewContent(prompt: string, solutions: string[]): string {
-    let solutionHTML = "";
-
-    solutions.forEach((solution, idx) => {
-        
-        const lines = solution.split('\n');
-        const header = lines[0]; 
-        const body = lines.slice(1).join('\n').trim(); 
-
-        if (body) {
-            const formattedBody = body
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;");
-
-            solutionHTML += `
-                <details>
-                    <summary><strong>${header}</strong></summary>
-                    <pre><code id="code-${idx}">${formattedBody}</code></pre>
-                    <button onclick="copyCode(${idx})">Copy</button>
-                    <button onclick="insertCode(${idx})">Insert</button>
-                    <button onclick="deleteCode()">Delete</button>
-                    <br/><br/>
-                </details>
-            `;
-        }
-    });
-
-    return `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>CodeGenie Results</title>
-            <style>
-                body {
-                    background-color: var(--vscode-editor-background);
-                    color: var(--vscode-editor-foreground);
-                    font-family: var(--vscode-font-family);
-                    padding: 1em;
-                }
-                pre {
-                    background: var(--vscode-editorGroupHeader-tabsBorder);
-                    padding: 1em;
-                    border-radius: 4px;
-                    overflow-x: auto;
-                    color: var(--vscode-editor-foreground);
-                }
-                button {
-                    margin: 0.5em 0.5em 0 0;
-                    padding: 4px 10px;
-                    font-size: 0.9em;
-                    cursor: pointer;
-                    background-color: var(--vscode-button-background);
-                    color: var(--vscode-button-foreground);
-                    border: none;
-                    border-radius: 3px;
-                }
-                button:hover {
-                    background-color: var(--vscode-button-hoverBackground);
-                }
-                h2, h3 {
-                    color: var(--vscode-editor-foreground);
-                }
-                blockquote {
-                    background: var(--vscode-editorGroupHeader-border);
-                    border-left: 5px solid var(--vscode-charts-green);
-                    margin: 1.5em 10px;
-                    padding: 0.5em 10px;
-                }
-                details {
-                    margin-bottom: 1em;
-                    border: 1px solid var(--vscode-editorGroup-border);
-                    border-radius: 4px;
-                    padding: 0.5em;
-                }
-                summary {
-                    cursor: pointer;
-                    font-weight: bold;
-                    padding: 0.2em 0;
-                }
-            </style>
-        </head>
-        <body>
-            <h2>Generated Code Approaches</h2>
-            <section>
-                <h3>Prompt:</h3>
-                <blockquote>${prompt}</blockquote>
-                ${solutionHTML}
-            </section>
-            <script>
-                const vscode = acquireVsCodeApi();
-
-                function copyCode(solIdx) {
-                    const codeBlock = document.getElementById('code-' + solIdx);
-                    if (codeBlock) {
-                        const textArea = document.createElement("textarea");
-                        textArea.value = codeBlock.innerText;
-                        document.body.appendChild(textArea);
-                        textArea.select();
-                        try {
-                            document.execCommand('copy');
-                            console.log('Code copied!');
-                        } catch (err) {
-                            console.error('Failed to copy code: ' + err);
-                        }
-                        document.body.removeChild(textArea);
-                    }
-                }
-
-                function insertCode(solIdx) {
-                    const codeBlock = document.getElementById('code-' + solIdx);
-                    if (codeBlock) {
-                        vscode.postMessage({
-                            command: 'insertCode',
-                            code: codeBlock.innerText
-                        });
-                    }
-                }
-
-                function deleteCode() {
-                    vscode.postMessage({
-                        command: 'deleteInsertedCode'
-                    });
-                }
-            </script>
-        </body>
-        </html>
-    `;
-}
-
-export function getSnippetChatWebviewContent(logoSrc: string): string {
+export function getWebviewContent(logoSrc: string): string {
     return `
     <!DOCTYPE html>
     <html lang="en">
@@ -251,7 +119,7 @@ export function getSnippetChatWebviewContent(logoSrc: string): string {
                 msg.textContent = text;
                 document.getElementById('chat').appendChild(msg);
                 msg.scrollIntoView({ behavior: 'smooth' });
-                return msg;
+                return msg; 
             }
 
             function send() {
@@ -270,7 +138,7 @@ export function getSnippetChatWebviewContent(logoSrc: string): string {
                 loadingMsg.id = "loading";
 
                 loadingMsg.id = "loading";
-                vscode.postMessage({ command: 'generate', text: text });
+                vscode.postMessage({ command: 'generate', text: text });                     
             }
 
             function createCopyButton(text) {
@@ -286,9 +154,8 @@ export function getSnippetChatWebviewContent(logoSrc: string): string {
                 btn.style.backgroundColor = '#f3f3f3';
                 btn.style.border = '1px solid #ccc';
                 btn.style.borderRadius = '4px';
-                btn.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.1)';
                 btn.style.cursor = 'pointer';
-
+                btn.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.1)';
 
                 btn.onclick = () => {
                     navigator.clipboard.writeText(text);
@@ -353,5 +220,136 @@ export function getSnippetChatWebviewContent(logoSrc: string): string {
         </script>
     </body>
     </html>
+    `;
+}
+
+export function getWebviewContentCodeSuggestion(prompt: string, solutions: string[]): string {
+    let solutionHTML = "";
+
+    solutions.forEach((solution, idx) => {
+        
+        const lines = solution.split('\n');
+        const header = lines[0]; 
+        const body = lines.slice(1).join('\n').trim(); 
+        if (body) {
+            const formattedBody = body
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+
+            solutionHTML += `
+                <details>
+                    <summary><strong>${header}</strong></summary>
+                    <pre><code id="code-${idx}">${formattedBody}</code></pre>
+                    <button onclick="copyCode(${idx})">Copy</button>
+                    <button onclick="insertCode(${idx})">Insert</button>
+                    <button onclick="deleteCode()">Delete</button>
+                    <br/><br/>
+                </details>
+            `;
+        }
+    });
+
+    return `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>CodeGenie Results</title>
+            <style>
+                body {
+                    background-color: var(--vscode-editor-background);
+                    color: var(--vscode-editor-foreground);
+                    font-family: var(--vscode-font-family);
+                    padding: 1em;
+                }
+                pre {
+                    background: var(--vscode-editorGroupHeader-tabsBorder);
+                    padding: 1em;
+                    border-radius: 4px;
+                    overflow-x: auto;
+                    color: var(--vscode-editor-foreground);
+                }
+                button {
+                    margin: 0.5em 0.5em 0 0;
+                    padding: 4px 10px;
+                    font-size: 0.9em;
+                    cursor: pointer;
+                    background-color: var(--vscode-button-background);
+                    color: var(--vscode-button-foreground);
+                    border: none;
+                    border-radius: 3px;
+                }
+                button:hover {
+                    background-color: var(--vscode-button-hoverBackground);
+                }
+                h2, h3 {
+                    color: var(--vscode-editor-foreground);
+                }
+                blockquote {
+                    background: var(--vscode-editorGroupHeader-border);
+                    border-left: 5px solid var(--vscode-charts-green);
+                    margin: 1.5em 10px;
+                    padding: 0.5em 10px;
+                }
+                details {
+                    margin-bottom: 1em;
+                    border: 1px solid var(--vscode-editorGroup-border);
+                    border-radius: 4px;
+                    padding: 0.5em;
+                }
+                summary {
+                    cursor: pointer;
+                    font-weight: bold;
+                    padding: 0.2em 0;
+                }
+            </style>
+        </head>
+        <body>
+            <h2>Generated Code Approaches</h2>
+            <section>
+                <h3>Prompt:</h3>
+                <blockquote>${prompt}</blockquote>
+                ${solutionHTML}
+            </section>
+            <script>
+                const vscode = acquireVsCodeApi();
+
+                function copyCode(solIdx) {
+                    const codeBlock = document.getElementById('code-' + solIdx);
+                    if (codeBlock) {
+                        const textArea = document.createElement("textarea");
+                        textArea.value = codeBlock.innerText;
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        try {
+                            document.execCommand('copy');
+                            console.log('Code copied!');
+                        } catch (err) {
+                            console.error('Failed to copy code: ' + err);
+                        }
+                        document.body.removeChild(textArea);
+                    }
+                }
+
+                function insertCode(solIdx) {
+                    const codeBlock = document.getElementById('code-' + solIdx);
+                    if (codeBlock) {
+                        vscode.postMessage({
+                            command: 'insertCode',
+                            code: codeBlock.innerText
+                        });
+                    }
+                }
+
+                function deleteCode() {
+                    vscode.postMessage({
+                        command: 'deleteInsertedCode'
+                    });
+                }
+            </script>
+        </body>
+        </html>
     `;
 }

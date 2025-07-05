@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
-import { getMultipleSolutionsWebviewContent, getSnippetChatWebviewContent } from './webviewContent';
+import { getWebviewContent ,getWebviewContentCodeSuggestion} from './webviewContent';
 import * as path from 'path';
+
 
 let panel: vscode.WebviewPanel | undefined;
 
@@ -31,43 +32,44 @@ const languageMap: { [key: string]: { name: string, singleLineComment: string, b
     ruby: { name: 'Ruby', singleLineComment: '#' },
     kotlin: { name: 'Kotlin', singleLineComment: '//' },
     csharp: { name: 'C#', singleLineComment: '//' },
-    
-    html: { name: 'HTML', singleLineComment: '', blockCommentStart: '' },
-    xml: { name: 'XML', singleLineComment: '', blockCommentStart: '' },
+    html: { name: 'HTML', singleLineComment: '', blockCommentStart: '<!--', blockCommentEnd: '-->' },
+    xml: { name: 'XML', singleLineComment: '', blockCommentStart: '<!--', blockCommentEnd: '-->' },
     css: { name: 'CSS', singleLineComment: '/*', blockCommentStart: '/*', blockCommentEnd: '*/' },
     json: { name: 'JSON', singleLineComment: '//' } 
+
 };
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('CodeGenie extension is now active!');
 
-    
-    context.subscriptions.push(
-        vscode.commands.registerCommand('codegenie.PanelSuggestions', async () => {
-            handleSuggestion(context, 'panel');
-        })
-    );
-
-    context.subscriptions.push(
-        vscode.commands.registerCommand('codegenie.InlineSuggestions', async () => {
-            handleSuggestion(context, 'inline');
-        })
-    );
-
-    
-    for (let i = 1; i <= 9; i++) { 
         context.subscriptions.push(
-            vscode.commands.registerCommand(`codegenie.inline.insertSolution${i}`, () => toggleInlineSolution(i, 'insert')),
-            vscode.commands.registerCommand(`codegenie.inline.deleteSolution${i}`, () => toggleInlineSolution(i, 'delete'))
+            vscode.commands.registerCommand('codegenie.PanelSuggestions', async () => {
+                handleSuggestion(context, 'panel');
+            })
         );
-    }
-    context.subscriptions.push(
-        vscode.commands.registerCommand('codegenie.inline.revertPrompt', async () => {
-            await revertToOriginalPrompt();
-        })
-    );
-    let disposableSnippet = vscode.commands.registerCommand('codegenie.generateSnippet', () => {
-        const panelSnippet = vscode.window.createWebviewPanel(
+
+        context.subscriptions.push(
+            vscode.commands.registerCommand('codegenie.InlineSuggestions', async () => {
+                handleSuggestion(context, 'inline');
+            })
+        );
+        for (let i = 1; i <= 9; i++) { 
+            context.subscriptions.push(
+                vscode.commands.registerCommand(`codegenie.inline.insertSolution${i}`, () => toggleInlineSolution(i, 'insert')),
+                vscode.commands.registerCommand(`codegenie.inline.deleteSolution${i}`, () => toggleInlineSolution(i, 'delete'))
+            );
+        }
+
+        context.subscriptions.push(
+            vscode.commands.registerCommand('codegenie.inline.revertPrompt', async () => {
+                await revertToOriginalPrompt();
+            })
+        );
+    
+
+
+    let disposable = vscode.commands.registerCommand('codegenie.generateSnippet', () => {
+        const panel = vscode.window.createWebviewPanel(
             'codegeniePanel',
             'CodeGenie',
             vscode.ViewColumn.Beside,
@@ -77,10 +79,12 @@ export function activate(context: vscode.ExtensionContext) {
         const logoPath = vscode.Uri.file(
             path.join(context.extensionPath, 'media', 'logo.png')
         );
-        const logoUri = panelSnippet.webview.asWebviewUri(logoPath);
-        panelSnippet.webview.html = getSnippetChatWebviewContent(logoUri.toString());
+        const logoUri = panel.webview.asWebviewUri(logoPath);
 
-        panelSnippet.webview.onDidReceiveMessage(
+
+        panel.webview.html = getWebviewContent(logoUri.toString());
+
+        panel.webview.onDidReceiveMessage(
             async message => {
                 if (message.command === 'generate') {
                     try {
@@ -88,10 +92,9 @@ export function activate(context: vscode.ExtensionContext) {
                             context: message.text,
                             language: 'python'
                         });
-                        panelSnippet.webview.postMessage({ command: 'result', code: response.data.code });
+                        panel.webview.postMessage({ command: 'result', code: response.data.code });
                     } catch (error) {
-                        console.error("Error generating snippet:", error);
-                        panelSnippet.webview.postMessage({ command: 'result', code: 'Failed to generate code.' });
+                        panel.webview.postMessage({ command: 'result', code: 'Failed to generate code.' });
                     }
                 }
             },
@@ -100,7 +103,7 @@ export function activate(context: vscode.ExtensionContext) {
         );
     });
 
-    context.subscriptions.push(disposableSnippet);
+    context.subscriptions.push(disposable);
 
     let inlineDisposable = vscode.commands.registerCommand('codegenie.inlineGenerate', async () => {
         const editor = vscode.window.activeTextEditor;
@@ -120,10 +123,12 @@ export function activate(context: vscode.ExtensionContext) {
         try {
             const response = await axios.post('http://localhost:5000/generate-snippet', {
                 context: selectedText,
-                language: 'python' 
+                language: 'python'
             });
 
             const generatedCode = response.data.code;
+
+        
             const insertPosition = selection.end.with(selection.end.line + 1, 0);
             editor.edit(editBuilder => {
                 editBuilder.insert(insertPosition, generatedCode + '\n');
@@ -131,11 +136,12 @@ export function activate(context: vscode.ExtensionContext) {
 
         } catch (error) {
             vscode.window.showErrorMessage('Code generation failed.');
-            console.error("Error in inline snippet generation:", error);
+            console.error(error);
         }
     });
 
     context.subscriptions.push(inlineDisposable);
+
 }
 
 async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline' | 'panel') {
@@ -161,7 +167,9 @@ async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline'
         );
         return;
     }
+
     const savedEditor = editor; 
+
     await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
         title: `Generating code (${mode === 'panel' ? 'Panel' : 'Inline'})...`,
@@ -172,6 +180,7 @@ async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline'
             try {
                 console.log("Client sending request to backend with prompt:", selectedText);
                 console.log("Client sending language:", langConfig.name); 
+
                 const response = await axios.post('http://127.0.0.1:5000/generate', {
                     prompt: selectedText,
                     language: langConfig.name
@@ -196,13 +205,15 @@ async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline'
             if (!generatedCode || typeof generatedCode !== 'string') {
                 throw new Error('Unexpected response format from backend.');
             }
+
             const parts = generatedCode.split(/(Solution\s*\d+\s*:\s*(?:Using\s*(?:functions|recursion|iteration))?)/);
-            const solutionsWithHeadersAndPrompt: string[] = [];
+            const solutionsWithHeadersAndPrompt: string[] = []; 
 
             for (let i = 1; i < parts.length; i += 2) {
                 const header = parts[i].trim();
                 const body = (parts[i + 1] || '').trim();
                 if (body) {
+                    
                     solutionsWithHeadersAndPrompt.push(header + '\n' + body);
                 }
             }
@@ -212,7 +223,7 @@ async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline'
                 
                 panelOriginalPromptRange = selection;
                 panelOriginalPromptContent = selectedText;
-                lastActivePanelInsertionRange = null; 
+                lastActivePanelInsertionRange = null;
                 currentPanelSolutions = solutionsWithHeadersAndPrompt; 
 
                 if (panel) {
@@ -227,14 +238,15 @@ async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline'
 
                     panel.onDidDispose(() => {
                         panel = undefined;
+                        
                         panelOriginalPromptRange = null;
                         panelOriginalPromptContent = null;
                         lastActivePanelInsertionRange = null;
                         currentPanelSolutions = [];
                     }, null, context.subscriptions);
                 }
-                panel.webview.html = getMultipleSolutionsWebviewContent(selectedText, solutionsWithHeadersAndPrompt);
 
+                panel.webview.html = getWebviewContentCodeSuggestion(selectedText, solutionsWithHeadersAndPrompt);
                 panel.webview.onDidReceiveMessage(
                     async (message) => {
                         if (message.command === 'insertCode') {
@@ -257,6 +269,7 @@ async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline'
                                 }
 
                                 editBuilder.replace(replaceRange, codeToInsert);
+
                                 const newStart = replaceRange.start;
                                 const lines = codeToInsert.split('\n');
                                 const newEndLine = newStart.line + lines.length - 1;
@@ -267,6 +280,7 @@ async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline'
                             });
                         } else if (message.command === 'deleteInsertedCode') {
                             const editor = savedEditor;
+                            
                             if (!editor || !panelOriginalPromptRange || !panelOriginalPromptContent) {
                                 vscode.window.showInformationMessage('Cannot delete code: Editor state not ready or no original prompt.');
                                 return;
@@ -281,9 +295,10 @@ async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline'
                                 }
 
                                 if (rangeToClear) {
-                                   
+                                    
                                     editBuilder.replace(rangeToClear, panelOriginalPromptContent!); 
                                 } else {
+
                                     if (panelOriginalPromptRange && panelOriginalPromptContent) {
                                         editBuilder.insert(panelOriginalPromptRange.start, panelOriginalPromptContent);
                                     } else {
@@ -304,6 +319,7 @@ async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline'
                 allGeneratedInlineSolutions = solutionsWithHeadersAndPrompt; 
                 originalPromptRange = selection;
                 originalPromptContent = selectedText;
+
                 lastActiveInlineInsertionRange = null;
                 currentInlineBlockRange = null; 
 
@@ -312,22 +328,25 @@ async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline'
                 let commentPrefix = langConfig.singleLineComment;
                 let blockCommentStart = langConfig.blockCommentStart;
                 let blockCommentEnd = langConfig.blockCommentEnd;
+
                 if (blockCommentStart && blockCommentEnd && (detectedLanguage === 'html' || detectedLanguage === 'xml' || detectedLanguage === 'css')) {
-                    
+                   
                     summaryContent += `${blockCommentStart} CodeGenie Solutions for: ${selectedText.split('\n')[0]} ${blockCommentEnd}\n\n`;
                 } else if (commentPrefix) {
-                    
+                   
                     summaryContent += `${commentPrefix} CodeGenie Solutions for: ${selectedText.split('\n')[0]}\n\n`;
                 } else {
-                   
+                    
                     summaryContent += `CodeGenie Solutions for: ${selectedText.split('\n')[0]}\n\n`;
                 }
 
                 solutionsWithHeadersAndPrompt.forEach((sol) => {
+                    
                     summaryContent += `${sol}\n\n`;
                 });
+
                 if (blockCommentStart && blockCommentEnd && (detectedLanguage === 'html' || detectedLanguage === 'xml' || detectedLanguage === 'css')) {
-                    summaryContent +=` ${blockCommentStart} Press 1, 2, or 3 to insert a solution, Ctrl+1/2/3 to revert to solution options, Esc to clear. ${blockCommentEnd}`;
+                    summaryContent += `${blockCommentStart} Press 1, 2, or 3 to insert a solution, Ctrl+1/2/3 to revert to solution options, Esc to clear. ${blockCommentEnd}`;
                 } else if (commentPrefix) {
                     summaryContent += `${commentPrefix} Press 1, 2, or 3 to insert a solution, Ctrl+1/2/3 to revert to solution options, Esc to clear.`;
                 } else {
@@ -336,6 +355,7 @@ async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline'
 
 
                 await editor.edit(editBuilder => {
+                    
                     editBuilder.replace(selection, summaryContent);
                 });
 
@@ -373,11 +393,12 @@ async function toggleInlineSolution(index: number, action: 'insert' | 'delete') 
     try {
         await editor.edit(editBuilder => {
             if (action === 'insert') {
-                let targetSolutionContent = allGeneratedInlineSolutions[index - 1];
+                let targetSolutionContent = allGeneratedInlineSolutions[index - 1]; 
                 if (!targetSolutionContent) {
                     vscode.window.showInformationMessage(`Solution ${index} not found.`);
                     return;
                 }
+
                 const lines = targetSolutionContent.split('\n');
                 if (lines.length > 0 && lines[0].startsWith('Solution ')) {
                     targetSolutionContent = lines.slice(1).join('\n'); 
@@ -388,12 +409,16 @@ async function toggleInlineSolution(index: number, action: 'insert' | 'delete') 
                     
                     replaceRange = lastActiveInlineInsertionRange;
                 } else if (currentInlineBlockRange) {
+                    
                     replaceRange = currentInlineBlockRange;
                 } else {
+                    
                     vscode.window.showErrorMessage('No active block or solution to replace.');
                     return;
                 }
+
                 editBuilder.replace(replaceRange, targetSolutionContent);
+
                 const newStart = replaceRange.start;
                 const linesAfterInsert = targetSolutionContent.split('\n');
                 const newEndLine = newStart.line + linesAfterInsert.length - 1;
@@ -403,19 +428,18 @@ async function toggleInlineSolution(index: number, action: 'insert' | 'delete') 
 
                 vscode.window.showInformationMessage(`Inserted Solution ${index}.`);
             } else { 
-               
+              
                 if (lastActiveInlineInsertionRange) {
                     
                     let summaryContent = '';
                     let commentPrefix = langConfig.singleLineComment;
                     let blockCommentStart = langConfig.blockCommentStart;
                     let blockCommentEnd = langConfig.blockCommentEnd;
-
                     if (originalPromptContent) {
                         if (blockCommentStart && blockCommentEnd && (detectedLanguage === 'html' || detectedLanguage === 'xml' || detectedLanguage === 'css')) {
                             summaryContent += `${blockCommentStart} CodeGenie Solutions for: ${originalPromptContent.split('\n')[0]} ${blockCommentEnd}\n\n`;
                         } else if (commentPrefix) {
-                            summaryContent +=` ${commentPrefix} CodeGenie Solutions for: ${originalPromptContent.split('\n')[0]}\n\n`;
+                            summaryContent += `${commentPrefix} CodeGenie Solutions for: ${originalPromptContent.split('\n')[0]}\n\n`;
                         } else {
                             summaryContent += `CodeGenie Solutions for: ${originalPromptContent.split('\n')[0]}\n\n`;
                         }
@@ -433,7 +457,6 @@ async function toggleInlineSolution(index: number, action: 'insert' | 'delete') 
                     }
 
                     editBuilder.replace(lastActiveInlineInsertionRange, summaryContent);
-
                     const newStart = lastActiveInlineInsertionRange.start;
                     const lines = summaryContent.split('\n');
                     const newEndLine = newStart.line + lines.length - 1;
@@ -441,7 +464,6 @@ async function toggleInlineSolution(index: number, action: 'insert' | 'delete') 
                     currentInlineBlockRange = new vscode.Range(newStart, new vscode.Position(newEndLine, newEndChar));
 
                     lastActiveInlineInsertionRange = null; 
-
                     vscode.window.showInformationMessage('Reverted to solution options.');
                 } else if (currentInlineBlockRange) {
                     vscode.window.showInformationMessage('Solution options are already displayed. Use Esc to revert to original prompt.');
@@ -495,8 +517,7 @@ async function revertToOriginalPrompt() {
     } catch (e) {
         console.error("Error during editor.edit for revert:", e);
         vscode.window.showErrorMessage("Failed to revert to original prompt: " + (e instanceof Error ? e.message : String(e)));
+        }
     }
-}
-
 
 export function deactivate() { }
