@@ -1,4 +1,3 @@
-
 export function getWebviewContent(logoSrc: string): string {
     return `
     <!DOCTYPE html>
@@ -372,8 +371,6 @@ export function getWebviewContentAutoCompletion(data: BackendResponse): string {
         if (!text) return '';
         return text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
     };
-
-    // MODIFIED: Added a check for the word "complete" to handle more "no-error" cases.
     const isErrorPresent = debug_explanation && 
                            !debug_explanation.toLowerCase().includes('no errors found') && 
                            !debug_explanation.toLowerCase().includes('code is incomplete') &&
