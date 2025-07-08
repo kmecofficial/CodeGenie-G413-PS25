@@ -5,6 +5,27 @@ export function getWebviewContent(logoSrc: string): string {
     <head>
         <meta charset="UTF-8">
         <style>
+            :root {
+                --bg: #1e1e1e;
+                --fg: #d4d4d4;
+                --user-bg: #264f78;
+                --bot-bg: #333333;
+            }
+
+            .light-theme {
+                --bg: #ffffff;
+                --fg: #000000;
+                --user-bg: #007acc;
+                --bot-bg: #e6e6e6;
+            }
+
+            .dark-theme {
+                --bg: #1e1e1e;
+                --fg: #d4d4d4;
+                --user-bg: #264f78;
+                --bot-bg: #333333;
+            }
+
             body {
                 font-family: 'Fira Sans','Segoe UI', sans-serif;
                 font-size: 14px;
@@ -13,20 +34,43 @@ export function getWebviewContent(logoSrc: string): string {
                 display: flex;
                 flex-direction: column;
                 height: 100vh;
-                color: black;
+                color: var(--fg);
+                background-color: var(--bg);
+                transition: background-color 0.3s ease, color 0.3s ease;
+            }
+
+            #themeToggle {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                font-size: 16px;
+                padding: 6px 12px;
+                border-radius: 5px;
+                background-color: var(--bot-bg);
+                color: var(--fg);
+                border: none;
+                cursor: pointer;
+            }
+
+            #welcome {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                padding: 2rem;
             }
 
             #chat {
                 flex: 1;
                 padding: 20px;
                 overflow-y: auto;
-                display: flex;
+                display: none;
                 flex-direction: column;
                 gap: 10px;
-                background: #f9f9f9 url('${logoSrc}') center center no-repeat;
-                background-size: 200px; /* Adjust size as needed */
-                opacity: 1;
-                }
+                background: var(--bg);
+            }
 
             .message {
                 max-width: 70%;
@@ -34,27 +78,28 @@ export function getWebviewContent(logoSrc: string): string {
                 border-radius: 10px;
                 white-space: pre-wrap;
                 word-wrap: break-word;
-                color: black;
+                color: var(--fg);
                 position: relative;
             }
 
             .user {
                 align-self: flex-end;
-                background-color: #d1e7ff;
+                background-color: var(--user-bg);
                 border-top-right-radius: 0;
+                color: white;
             }
 
             .bot {
                 align-self: flex-start;
-                background-color: #e6e6e6;
+                background-color: var(--bot-bg);
                 border-top-left-radius: 0;
             }
 
             #inputBar {
                 display: flex;
                 padding: 10px;
-                background-color: #fff;
-                border-top: 1px solid #ccc;
+                background-color: var(--bg);
+                border-top: 1px solid #555;
             }
 
             textarea {
@@ -64,10 +109,10 @@ export function getWebviewContent(logoSrc: string): string {
                 padding: 10px;
                 border-radius: 8px;
                 font-size: 14px;
-                border: 1px solid #ccc;
+                border: 1px solid #999;
                 margin-right: 10px;
-                color: black;
-                background-color: white;
+                color: var(--fg);
+                background-color: var(--bg);
             }
 
             button {
@@ -84,25 +129,31 @@ export function getWebviewContent(logoSrc: string): string {
             button:hover {
                 transform: scale(1.05);
             }
+
             .spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #ccc;
-            border-top: 3px solid #007acc;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-left: 10px;
+                display: inline-block;
+                width: 20px;
+                height: 20px;
+                border: 3px solid #888;
+                border-top: 3px solid #007acc;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+                margin-left: 10px;
             }
 
             @keyframes spin {
                 0% { transform: rotate(0deg); }
                 100% { transform: rotate(360deg); }
             }
-
         </style>
     </head>
     <body>
+        <button id="themeToggle">🌙</button>
+        <div id="welcome">
+            <h1>👋 Welcome to CodeGenie</h1>
+            <p>Start by entering a prompt below and pressing "Generate"</p>
+        </div>
+
         <div id="chat"></div>
 
         <div id="inputBar">
@@ -113,19 +164,40 @@ export function getWebviewContent(logoSrc: string): string {
         <script>
             const vscode = acquireVsCodeApi();
 
+            // Load stored theme or default to dark
+            const storedState = vscode.getState();
+            const preferredTheme = storedState?.theme || 'dark-theme';
+            const body = document.body;
+            const toggleBtn = document.getElementById('themeToggle');
+
+            body.classList.add(preferredTheme);
+            toggleBtn.textContent = preferredTheme === 'dark-theme' ? '🌙' : '☀️';
+
+            toggleBtn.addEventListener('click', () => {
+                const isDark = body.classList.contains('dark-theme');
+                body.classList.toggle('light-theme', isDark);
+                body.classList.toggle('dark-theme', !isDark);
+                const newTheme = isDark ? 'light-theme' : 'dark-theme';
+                toggleBtn.textContent = isDark ? '☀️' : '🌙';
+                vscode.setState({ theme: newTheme });
+            });
+
             function addMessage(text, sender) {
                 const msg = document.createElement('div');
                 msg.className = 'message ' + sender;
                 msg.textContent = text;
                 document.getElementById('chat').appendChild(msg);
                 msg.scrollIntoView({ behavior: 'smooth' });
-                return msg; 
+                return msg;
             }
 
             function send() {
                 const input = document.getElementById('input');
                 const text = input.value.trim();
                 if (!text) return;
+
+                document.getElementById('welcome').style.display = 'none';
+                document.getElementById('chat').style.display = 'flex';
 
                 addMessage(text, 'user');
                 input.value = '';
@@ -137,18 +209,15 @@ export function getWebviewContent(logoSrc: string): string {
                 loadingMsg.appendChild(spinner);
                 loadingMsg.id = "loading";
 
-                loadingMsg.id = "loading";
-                vscode.postMessage({ command: 'generate', text: text });                     
+                vscode.postMessage({ command: 'generate', text: text });
             }
 
             function createCopyButton(text) {
                 const btn = document.createElement('button');
                 btn.textContent = '📋';
                 btn.title = 'Copy to clipboard';
-
                 btn.style.alignSelf = 'flex-end';
                 btn.style.marginTop = '6px';
-
                 btn.style.padding = '4px 6px';
                 btn.style.fontSize = '12px';
                 btn.style.backgroundColor = '#f3f3f3';
@@ -166,62 +235,70 @@ export function getWebviewContent(logoSrc: string): string {
                 return btn;
             }
 
-           window.addEventListener('message', event => {
-            const message = event.data;
-            if (message.command === 'result') {
-                const oldMsg = document.getElementById('loading');
-                if (oldMsg) {
-                    oldMsg.textContent = '';
+            window.addEventListener('message', event => {
+                const message = event.data;
+                if (message.command === 'result') {
+                    const oldMsg = document.getElementById('loading');
+                    if (oldMsg) {
+                        oldMsg.textContent = '';
 
-                    const wrapper = document.createElement('div');
-                    wrapper.style.display = 'flex';
-                    wrapper.style.flexDirection = 'column';
-                    wrapper.style.alignItems = 'flex-end';
-                    wrapper.style.gap = '5px';
+                        const wrapper = document.createElement('div');
+                        wrapper.style.display = 'flex';
+                        wrapper.style.flexDirection = 'column';
+                        wrapper.style.alignItems = 'flex-end';
+                        wrapper.style.gap = '5px';
 
-                    const codeBlock = document.createElement('pre');
-                    codeBlock.textContent = message.code;
-                    codeBlock.style.whiteSpace = 'pre-wrap';
-                    codeBlock.style.margin = '0';
-                    codeBlock.style.alignSelf = 'stretch'; // make code full width
+                        const codeBlock = document.createElement('pre');
+                        codeBlock.textContent = message.code;
+                        codeBlock.style.whiteSpace = 'pre-wrap';
+                        codeBlock.style.margin = '0';
+                        codeBlock.style.alignSelf = 'stretch';
 
-                    const copyBtn = createCopyButton(message.code);
+                        const copyBtn = createCopyButton(message.code);
 
-                    wrapper.appendChild(codeBlock);
-                    wrapper.appendChild(copyBtn);
-                    oldMsg.appendChild(wrapper);
-                    oldMsg.removeAttribute('id');
+                        wrapper.appendChild(codeBlock);
+                        const hr = document.createElement('hr');
+                        hr.style.border = 'none';
+                        hr.style.borderTop = '1px solid #ccc';
+                        hr.style.width = '100%';
+                        wrapper.appendChild(hr);
+                        wrapper.appendChild(copyBtn);
+                        oldMsg.appendChild(wrapper);
+                        oldMsg.removeAttribute('id');
+                    } else {
+                        const msg = addMessage('', 'bot');
 
-                } else {
-                    const msg = addMessage('', 'bot');
+                        const wrapper = document.createElement('div');
+                        wrapper.style.display = 'flex';
+                        wrapper.style.flexDirection = 'column';
+                        wrapper.style.alignItems = 'flex-end';
+                        wrapper.style.gap = '5px';
 
-                    const wrapper = document.createElement('div');
-                    wrapper.style.display = 'flex';
-                    wrapper.style.flexDirection = 'column';
-                    wrapper.style.alignItems = 'flex-end';
-                    wrapper.style.gap = '5px';
+                        const codeBlock = document.createElement('pre');
+                        codeBlock.textContent = message.code;
+                        codeBlock.style.whiteSpace = 'pre-wrap';
+                        codeBlock.style.margin = '0';
+                        codeBlock.style.alignSelf = 'stretch';
 
-                    const codeBlock = document.createElement('pre');
-                    codeBlock.textContent = message.code;
-                    codeBlock.style.whiteSpace = 'pre-wrap';
-                    codeBlock.style.margin = '0';
-                    codeBlock.style.alignSelf = 'stretch';
+                        const copyBtn = createCopyButton(message.code);
 
-                    const copyBtn = createCopyButton(message.code);
-
-                    wrapper.appendChild(codeBlock);
-                    wrapper.appendChild(copyBtn);
-                    msg.appendChild(wrapper);
-
+                        wrapper.appendChild(codeBlock);
+                        const hr = document.createElement('hr');
+                        hr.style.border = 'none';
+                        hr.style.borderTop = '1px solid #ccc';
+                        hr.style.width = '100%';
+                        wrapper.appendChild(hr);
+                        wrapper.appendChild(copyBtn);
+                        msg.appendChild(wrapper);
+                    }
                 }
-            }
-        });
-
+            });
         </script>
     </body>
     </html>
     `;
 }
+
 
 export function getWebviewContentCodeSuggestion(prompt: string, solutions: string[]): string {
     let solutionHTML = "";
