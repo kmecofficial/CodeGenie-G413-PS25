@@ -1,11 +1,10 @@
 import * as vscode from 'vscode';
-import axios from 'axios';
-import { getWebviewContent ,getWebviewContentCodeSuggestion} from './webviewContent';
+import axios,{AxiosError} from 'axios';
+import { getWebviewContent ,getWebviewContentCodeSuggestion,getWebviewContentAutoCompletion} from './webviewContent';
 import * as path from 'path';
-
+import { BACKEND_URLS }  from './urlconstants';
 
 let panel: vscode.WebviewPanel | undefined;
-
 let allGeneratedInlineSolutions: string[] = []; 
 let originalPromptRange: vscode.Range | null = null; 
 let originalPromptContent: string | null = null; 
@@ -17,7 +16,18 @@ let panelOriginalPromptContent: string | null = null;
 let lastActivePanelInsertionRange: vscode.Range | null = null; 
 let currentPanelSolutions: string[] = []; 
 
+let webviewPanel: vscode.WebviewPanel | undefined;
+let typingHintDecoration: vscode.TextEditorDecorationType;
+let watermarkDecoration: vscode.TextEditorDecorationType;
+let isHintSuppressed = false;
 
+interface BackendResponse {
+    completed_code?: string;
+    explanation?: string;
+    example?: string;
+    error?: string;
+    debug_explanation?: string;
+}
 const languageMap: { [key: string]: { name: string, singleLineComment: string, blockCommentStart?: string, blockCommentEnd?: string } } = {
     python: { name: 'Python', singleLineComment: '#' },
     java: { name: 'Java', singleLineComment: '//' },
@@ -38,8 +48,63 @@ const languageMap: { [key: string]: { name: string, singleLineComment: string, b
     json: { name: 'JSON', singleLineComment: '//' } 
 
 };
-
 export function activate(context: vscode.ExtensionContext) {
+    console.log('CodeGenie is now active!🧞');
+
+    typingHintDecoration = vscode.window.createTextEditorDecorationType({
+        isWholeLine: true,
+        after: {
+            contentText: 'Press [Alt+I] for Inline Autocomplete⚡ or [Alt+P] for Debug and Autocomplete✨',
+            color: '#00BFFF',
+            fontWeight: 'bold',
+            fontStyle: 'normal',
+            margin: '0 0 0 1em'
+        }
+    });
+    watermarkDecoration = vscode.window.createTextEditorDecorationType({
+        isWholeLine: true,
+        after: {
+            contentText: 'Welcome to CodeGenie!🧞',
+            color: '#00BFFF',
+            fontWeight: 'bold',
+            fontStyle: 'italic',
+            margin: '0 0 0 1em',
+        },
+    });
+
+    const autocompleteCommand = vscode.commands.registerCommand('codegenie.autocomplete', runAutocomplete);
+    const inlineAutocompleteCommand = vscode.commands.registerCommand('codegenie.inlineAutocomplete', runInlineAutocomplete);
+
+    context.subscriptions.push(autocompleteCommand, inlineAutocompleteCommand);
+
+    let activeEditor = vscode.window.activeTextEditor;
+
+    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
+        activeEditor = editor;
+        if (editor) {
+            isHintSuppressed = false;
+            updateDecorations(editor);
+        }
+    }));
+
+    context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => {
+        if (activeEditor && event.document === activeEditor.document) {
+            if (isHintSuppressed) {
+                isHintSuppressed = false;
+            }
+            updateDecorations(activeEditor);
+        }
+    }));
+
+    context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(event => {
+        if (event.textEditor) {
+            updateDecorations(event.textEditor);
+        }
+    }));
+
+    if (activeEditor) {
+        updateDecorations(activeEditor);
+    }
     console.log('CodeGenie extension is now active!');
 
         context.subscriptions.push(
@@ -65,9 +130,6 @@ export function activate(context: vscode.ExtensionContext) {
                 await revertToOriginalPrompt();
             })
         );
-    
-
-
     let disposable = vscode.commands.registerCommand('codegenie.generateSnippet', () => {
         const panel = vscode.window.createWebviewPanel(
             'codegeniePanel',
@@ -88,7 +150,7 @@ export function activate(context: vscode.ExtensionContext) {
             async message => {
                 if (message.command === 'generate') {
                     try {
-                        const response = await axios.post('http://localhost:5000/generate-snippet', {
+                        const response = await axios.post(BACKEND_URLS.INTELLIGENT_SNIPPETS, {
                             context: message.text,
                             language: 'python'
                         });
@@ -121,7 +183,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         try {
-            const response = await axios.post('http://localhost:5000/generate-snippet', {
+            const response = await axios.post(BACKEND_URLS.INTELLIGENT_SNIPPETS, {
                 context: selectedText,
                 language: 'python'
             });
@@ -144,6 +206,209 @@ export function activate(context: vscode.ExtensionContext) {
 
 }
 
+function updateDecorations(editor: vscode.TextEditor) {
+    if (!editor || webviewPanel) {
+        if (editor) {
+            editor.setDecorations(typingHintDecoration, []);
+            editor.setDecorations(watermarkDecoration, []);
+        }
+        return;
+    }
+
+    if (isHintSuppressed) {
+        editor.setDecorations(typingHintDecoration, []);
+        if (editor.document.getText().length === 0) {
+            editor.setDecorations(watermarkDecoration, [new vscode.Range(0, 0, 0, 0)]);
+        } else {
+            editor.setDecorations(watermarkDecoration, []);
+        }
+        return;
+    }
+
+    const doc = editor.document;
+    const hintDecorations: vscode.DecorationOptions[] = [];
+    const watermarkDecorations: vscode.DecorationOptions[] = [];
+
+    if (doc.getText().trim().length === 0) {
+        watermarkDecorations.push({ range: new vscode.Range(0, 0, 0, 0) });
+    } else {
+        let lastNonEmptyLineNum = -1;
+        for (let i = doc.lineCount - 1; i >= 0; i--) {
+            if (!doc.lineAt(i).isEmptyOrWhitespace) {
+                lastNonEmptyLineNum = i;
+                break;
+            }
+        }
+
+        const cursorLineNum = editor.selection.active.line;
+        if (lastNonEmptyLineNum !== -1 && cursorLineNum === lastNonEmptyLineNum + 1) {
+            const hintRange = new vscode.Range(cursorLineNum, 0, cursorLineNum, 0);
+            hintDecorations.push({ range: hintRange });
+        }
+    }
+
+    editor.setDecorations(typingHintDecoration, hintDecorations);
+    editor.setDecorations(watermarkDecoration, watermarkDecorations);
+}
+
+async function runAutocomplete() {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        vscode.window.showErrorMessage('❌ No active editor window. Please open a file.');
+        return;
+    }
+
+    editor.setDecorations(typingHintDecoration, []);
+
+    const document = editor.document;
+    const prompt = document.getText();
+
+    if (!prompt.trim()) {
+        vscode.window.showInformationMessage('❌ Cannot generate code from an empty file.');
+        updateDecorations(editor);
+        return;
+    }
+
+    const originalRange = new vscode.Range(
+        new vscode.Position(0, 0),
+        document.lineAt(document.lineCount - 1).range.end
+    );
+
+    await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: 'CodeGenie', cancellable: true },
+        async (progress, token) => {
+            token.onCancellationRequested(() => {
+                console.log("User cancelled the CodeGenie Debug & Autocompletion.");
+            });
+            
+            progress.report({ message: "Debugging & Autocompleting... ✨" });
+
+            try {
+                const response = await fetchFromBackend(prompt);
+                console.log("Data received from backend:", JSON.stringify(response, null, 2));
+                progress.report({ message: "Debug & Autocompletion Done!✅", increment: 100 });
+                await new Promise(resolve => setTimeout(resolve, 500));
+                createAndShowWebview(response, editor, originalRange);
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+                vscode.window.showErrorMessage(`❌ CodeGenie Error: ${errorMessage}`);
+                webviewPanel?.dispose();
+            }
+        }
+    );
+}
+
+async function runInlineAutocomplete() {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        vscode.window.showErrorMessage('❌ No active editor window. Please open a file.');
+        return;
+    }
+
+    const document = editor.document;
+    const prompt = document.getText();
+
+    if (!prompt.trim()) {
+        vscode.window.showInformationMessage('❌ Cannot generate code from an empty file.');
+        return;
+    }
+
+    const fullRange = new vscode.Range(
+        document.positionAt(0),
+        document.positionAt(document.getText().length)
+    );
+
+    await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: 'CodeGenie', cancellable: true },
+        async (progress, token) => {
+            token.onCancellationRequested(() => {
+                console.log("User cancelled the CodeGenie Inline Autocompletion.");
+            });
+
+            progress.report({ message: "Autocompleting Inline... ⚡" });
+
+            try {
+                const response = await fetchFromBackend(prompt);
+                console.log("Data received from backend for inline autocomplete:", JSON.stringify(response, null, 2));
+
+                if (!response.completed_code || !response.completed_code.trim()) {
+                    vscode.window.showWarningMessage('❌ CodeGenie did not return any code to insert.');
+                    return;
+                }
+
+                await editor.edit(editBuilder => {
+                    editBuilder.replace(fullRange, response.completed_code!);
+                });
+
+                vscode.window.showInformationMessage("Inline Autocompletion Done!✅");
+                await vscode.commands.executeCommand('editor.action.formatDocument');
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+                vscode.window.showErrorMessage(`❌ CodeGenie Error: ${errorMessage}`);
+            }
+        }
+    );
+}
+
+function createAndShowWebview(data: BackendResponse, editor: vscode.TextEditor, rangeToReplace: vscode.Range) {
+    const column = editor.viewColumn ? editor.viewColumn + 1 : vscode.ViewColumn.Two;
+
+    if (webviewPanel) {
+        webviewPanel.reveal(column);
+    } else {
+        webviewPanel = vscode.window.createWebviewPanel(
+            'codeGenieResult', 'CodeGenie Result', column,
+            { enableScripts: true, localResourceRoots: [] }
+        );
+
+        webviewPanel.onDidDispose(() => {
+            webviewPanel = undefined;
+            isHintSuppressed = true;
+            if (vscode.window.activeTextEditor) {
+                updateDecorations(vscode.window.activeTextEditor);
+            }
+        });
+    }
+
+    webviewPanel.webview.html = getWebviewContentAutoCompletion(data);
+
+    webviewPanel.webview.onDidReceiveMessage(async (message) => {
+        switch (message.command) {
+            case 'insert':
+                await editor.edit(editBuilder => {
+                    editBuilder.replace(rangeToReplace, (data.completed_code || '').trim());
+                });
+                await vscode.commands.executeCommand('editor.action.formatDocument');
+                webviewPanel?.dispose();
+                return;
+            case 'revert':
+                webviewPanel?.dispose();
+                return;
+        }
+    });
+}
+
+async function fetchFromBackend(prompt: string): Promise<BackendResponse> {
+    const url = BACKEND_URLS.AUTO_COMPLETE;
+    try {
+        const response = await axios.post<BackendResponse>(url, { prompt });
+        if (response.data.error) {
+            throw new Error(response.data.error);
+        }
+        return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            const axiosError = error as AxiosError<BackendResponse>;
+            if (axiosError.code === 'ECONNREFUSED' || !axiosError.response) {
+                throw new Error('Connection to backend failed. Is the Python server running?');
+            }
+            if (axiosError.response?.data?.error) {
+                throw new Error(axiosError.response.data.error);
+            }
+        }
+        throw error;
+    }
+}
 async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline' | 'panel') {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -167,9 +432,7 @@ async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline'
         );
         return;
     }
-
     const savedEditor = editor; 
-
     await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
         title: `Generating code (${mode === 'panel' ? 'Panel' : 'Inline'})...`,
@@ -181,7 +444,7 @@ async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline'
                 console.log("Client sending request to backend with prompt:", selectedText);
                 console.log("Client sending language:", langConfig.name); 
 
-                const response = await axios.post('http://127.0.0.1:5000/generate', {
+                const response = await axios.post(BACKEND_URLS.CODE_SUGGESTION, {
                     prompt: selectedText,
                     language: langConfig.name
                 });
@@ -374,7 +637,6 @@ async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline'
         }
     });
 }
-
 async function toggleInlineSolution(index: number, action: 'insert' | 'delete') {
     console.log("toggleInlineSolution triggered for index:", index, "action:", action);
     const editor = vscode.window.activeTextEditor;
@@ -520,4 +782,9 @@ async function revertToOriginalPrompt() {
         }
     }
 
-export function deactivate() { }
+export function deactivate() { 
+    console.log('CodeGenie extension deactivated.');
+    webviewPanel?.dispose();
+    typingHintDecoration?.dispose();
+    watermarkDecoration?.dispose();
+}

@@ -1,6 +1,8 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import re
+import logging
+import json
 
 model_name = "deepseek-ai/deepseek-coder-1.3b-instruct"
 
@@ -50,3 +52,31 @@ def generate_code(context: str, language: str = "python") -> str:
     except Exception as e:
         print("Error during code generation:", str(e))
         return f"\nError during code generation: {str(e)}"
+    
+def extract_json_object(text: str):
+    """
+    Finds and extracts the first complete JSON object from a string by balancing braces.
+    """
+    start_index = text.find('{')
+    if start_index == -1:
+        logging.warning("No starting '{' found in the text.")
+        return None
+
+    text_slice = text[start_index:]
+    open_braces = 0
+    
+    for i, char in enumerate(text_slice):
+        if char == '{':
+            open_braces += 1
+        elif char == '}':
+            open_braces -= 1
+        
+        if open_braces == 0:
+            json_string = text_slice[:i+1]
+            try:
+                return json.loads(json_string)
+            except json.JSONDecodeError as e:
+                logging.warning(f"JSONDecodeError: {e} - Attempting to find another JSON object.")
+                return extract_json_object(text_slice[i+1:])
+    logging.warning("JSON object not balanced or complete within the text.")
+    return None
