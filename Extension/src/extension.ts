@@ -4,11 +4,7 @@ import { getWebviewContent ,getWebviewContentCodeSuggestion,getWebviewContentAut
 import * as path from 'path';
 import { BACKEND_URLS }  from './urlconstants';
 
-
-
-
 let panel: vscode.WebviewPanel | undefined;
-
 let allGeneratedInlineSolutions: string[] = []; 
 let originalPromptRange: vscode.Range | null = null; 
 let originalPromptContent: string | null = null; 
@@ -32,8 +28,6 @@ interface BackendResponse {
     error?: string;
     debug_explanation?: string;
 }
-
-
 const languageMap: { [key: string]: { name: string, singleLineComment: string, blockCommentStart?: string, blockCommentEnd?: string } } = {
     python: { name: 'Python', singleLineComment: '#' },
     java: { name: 'Java', singleLineComment: '//' },
@@ -54,9 +48,6 @@ const languageMap: { [key: string]: { name: string, singleLineComment: string, b
     json: { name: 'JSON', singleLineComment: '//' } 
 
 };
-
-
-
 export function activate(context: vscode.ExtensionContext) {
     console.log('CodeGenie is now active!🧞');
 
@@ -70,7 +61,6 @@ export function activate(context: vscode.ExtensionContext) {
             margin: '0 0 0 1em'
         }
     });
-
     watermarkDecoration = vscode.window.createTextEditorDecorationType({
         isWholeLine: true,
         after: {
@@ -115,8 +105,6 @@ export function activate(context: vscode.ExtensionContext) {
     if (activeEditor) {
         updateDecorations(activeEditor);
     }
-
-
     console.log('CodeGenie extension is now active!');
 
         context.subscriptions.push(
@@ -142,9 +130,6 @@ export function activate(context: vscode.ExtensionContext) {
                 await revertToOriginalPrompt();
             })
         );
-    
-
-
     let disposable = vscode.commands.registerCommand('codegenie.generateSnippet', () => {
         const panel = vscode.window.createWebviewPanel(
             'codegeniePanel',
@@ -424,11 +409,6 @@ async function fetchFromBackend(prompt: string): Promise<BackendResponse> {
         throw error;
     }
 }
-
-
-
-
-
 async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline' | 'panel') {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -452,9 +432,7 @@ async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline'
         );
         return;
     }
-
     const savedEditor = editor; 
-
     await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
         title: `Generating code (${mode === 'panel' ? 'Panel' : 'Inline'})...`,
@@ -659,7 +637,6 @@ async function handleSuggestion(context: vscode.ExtensionContext, mode: 'inline'
         }
     });
 }
-
 async function toggleInlineSolution(index: number, action: 'insert' | 'delete') {
     console.log("toggleInlineSolution triggered for index:", index, "action:", action);
     const editor = vscode.window.activeTextEditor;
