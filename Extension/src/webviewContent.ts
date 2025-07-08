@@ -1,4 +1,4 @@
-;
+
 export function getWebviewContent(logoSrc: string): string {
     return `
     <!DOCTYPE html>
