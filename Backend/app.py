@@ -142,8 +142,6 @@ def generate_autocomplete():
         if not user_code or not user_code.strip():
             logging.warning("Received an empty prompt.")
             return jsonify({'error': 'Prompt is empty.'}), 400
-        
-        # --- REFINED PROMPT FOR CLEARER DEBUGGING AND COMPLETION ---
         prompt_template = f"""You are a highly analytical and precise coding assistant specializing in code completion and error analysis.
 Your primary task is to analyze the user's code, identify any issues, and provide a complete, functional version.
 
@@ -193,8 +191,6 @@ JSON Response:
         if not output_json:
             logging.error(f"Failed to extract valid JSON from model output. Raw output: {raw_output_text}")
             return jsonify({'error': 'Failed to parse AI model response. Expected JSON but got malformed output.'}), 500
-
-        # Ensure all required keys are present with appropriate defaults
         final_response = {
             "debug_explanation": output_json.get("debug_explanation", "Debug analysis was not provided by the model."),
             "completed_code": output_json.get("completed_code", user_code),
