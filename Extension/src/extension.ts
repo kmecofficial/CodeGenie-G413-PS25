@@ -182,24 +182,32 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        try {
-            const response = await axios.post(BACKEND_URLS.INTELLIGENT_SNIPPETS, {
-                context: selectedText,
-                language: 'python'
-            });
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: 'Generating solution...',
+                cancellable: false,
+            },
+            async () => {
+                try {
+                    const response = await axios.post(BACKEND_URLS.INTELLIGENT_SNIPPETS, {
+                        context: selectedText,
+                        language: 'python'
+                    });
 
-            const generatedCode = response.data.code;
+                    const generatedCode = response.data.code;
 
-        
-            const insertPosition = selection.end.with(selection.end.line + 1, 0);
-            editor.edit(editBuilder => {
-                editBuilder.insert(insertPosition, generatedCode + '\n');
-            });
+                    const insertPosition = selection.end.with(selection.end.line + 1, 0);
+                    editor.edit(editBuilder => {
+                        editBuilder.insert(insertPosition, generatedCode + '\n');
+                    });
 
-        } catch (error) {
-            vscode.window.showErrorMessage('Code generation failed.');
-            console.error(error);
-        }
+                } catch (error) {
+                    vscode.window.showErrorMessage('Code generation failed.');
+                    console.error(error);
+                }
+            }
+        );
     });
 
     context.subscriptions.push(inlineDisposable);
