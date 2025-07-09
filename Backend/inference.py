@@ -23,8 +23,8 @@ def generate_code(context: str, language: str = "python") -> str:
     try:
         prompt = (
         f"Generate valid and complete {language} code based on the following request.\n"
-        f"Request:\n{context}\n"
-        f"Do not include any explanations or comments. Only return the output code.\n\n"
+        f"Only return valid {language} code with no explanations or comments.\n"
+        f"Request is :\n{context}\n"
         )
 
         inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
