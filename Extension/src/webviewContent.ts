@@ -202,12 +202,29 @@ export function getWebviewContent(logoSrc: string): string {
                 addMessage(text, 'user');
                 input.value = '';
 
-                const loadingMsg = addMessage("Generating response...", 'bot');
-                const spinner = document.createElement('span');
-                spinner.className = 'spinner';
-                spinner.id = 'spinner';
-                loadingMsg.appendChild(spinner);
+                const loadingMsg = addMessage("Generating response", 'bot');
+                const dots = document.createElement('span');
+                dots.id = 'dots';
+                dots.style.display = 'inline-block';
+                dots.style.fontFamily = 'monospace';
+                dots.style.minWidth = '3ch'; 
+                dots.textContent = '    ';
+
+                loadingMsg.appendChild(dots);
                 loadingMsg.id = "loading";
+
+                let dotCount = 0;
+                const maxDots = 3;
+                const totalSlots = 4;
+                const dotInterval = setInterval(() => {
+                    dotCount = (dotCount + 1) % (maxDots + 1);
+                    dots.textContent = ' ' + ' .'.repeat(dotCount);
+                    const visibleDots = '.'.repeat(dotCount);
+                    const remaining = '\u00A0'.repeat(totalSlots - dotCount);
+                    dots.textContent = visibleDots + remaining;
+                }, 1000);
+
+                loadingMsg.setAttribute('data-interval-id', dotInterval.toString());
 
                 vscode.postMessage({ command: 'generate', text: text });
             }
@@ -240,6 +257,8 @@ export function getWebviewContent(logoSrc: string): string {
                 if (message.command === 'result') {
                     const oldMsg = document.getElementById('loading');
                     if (oldMsg) {
+                        const intervalId = parseInt(oldMsg.getAttribute('data-interval-id') || '', 10);
+                        if (!isNaN(intervalId)) clearInterval(intervalId);
                         oldMsg.textContent = '';
 
                         const wrapper = document.createElement('div');
