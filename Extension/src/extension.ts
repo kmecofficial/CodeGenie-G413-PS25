@@ -1,10 +1,12 @@
 import * as vscode from 'vscode';
 import axios,{AxiosError} from 'axios';
-import { getWebviewContent ,getWebviewContentCodeSuggestion,getWebviewContentAutoCompletion, getaboutviewContent} from './webviewContent';
+import { getWebviewContent ,getWebviewContentCodeSuggestion,getWebviewContentAutoCompletion, getaboutviewContent, getChatbotWebviewContent} from './webviewContent';
 import * as path from 'path';
 import { BACKEND_URLS }  from './urlconstants';
 
 let panel: vscode.WebviewPanel | undefined;
+let chatbotPanel: vscode.WebviewPanel | undefined;
+
 let allGeneratedInlineSolutions: string[] = []; 
 let originalPromptRange: vscode.Range | null = null; 
 let originalPromptContent: string | null = null; 
@@ -27,7 +29,11 @@ interface BackendResponse {
     example?: string;
     error?: string;
     debug_explanation?: string;
+    code?: string;
+    response?: string;
 }
+const insertedCodeRanges = new Map<string, vscode.Range>(); // Map to store ranges of inserted code
+
 const languageMap: { [key: string]: { name: string, singleLineComment: string, blockCommentStart?: string, blockCommentEnd?: string } } = {
     python: { name: 'Python', singleLineComment: '#' },
     java: { name: 'Java', singleLineComment: '//' },
@@ -98,7 +104,7 @@ export function activate(context: vscode.ExtensionContext) {
     typingHintDecoration = vscode.window.createTextEditorDecorationType({
         isWholeLine: true,
         after: {
-            contentText: 'Press [Alt+I] for Inline Autocomplete⚡ or [Alt+P] for Debug and Autocomplete✨',
+            contentText: 'Use the command buttons or shortcut keys as needed. See ℹ️ About for feature details.',
             color: '#00BFFF',
             fontWeight: 'bold',
             fontStyle: 'normal',
@@ -273,6 +279,151 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(inlineDisposable);
 
+    const chatbotCommand = vscode.commands.registerCommand('codegenie.chatbotPanel', () => {
+        const column = vscode.window.activeTextEditor ? vscode.ViewColumn.Beside : vscode.ViewColumn.One;
+
+        if (chatbotPanel) {
+            chatbotPanel.reveal(column);
+            return;
+        }
+
+        chatbotPanel = vscode.window.createWebviewPanel(
+            'codegenieChatbot',
+            'CodeGenie Chatbot',
+            column,
+            {
+                enableScripts: true,
+                localResourceRoots: [vscode.Uri.file(path.join(context.extensionUri.fsPath, 'media'))]
+            }
+        );
+        
+        const darkLogoPath = vscode.Uri.file(path.join(context.extensionUri.fsPath, 'media', 'logo_dark.png'));
+        const logoUri = chatbotPanel.webview.asWebviewUri(darkLogoPath);
+
+        chatbotPanel.webview.html = getChatbotWebviewContent(logoUri.toString());
+
+        chatbotPanel.onDidDispose(() => {
+            chatbotPanel = undefined;
+            insertedCodeRanges.clear(); // Clear the map when the panel is disposed
+        }, null, context.subscriptions);
+
+        // --- BUG FIX: Moved editor check inside relevant cases ---
+        chatbotPanel.webview.onDidReceiveMessage(async message => {
+
+            switch (message.command) {
+                case 'callBackend': {
+                    const editor = vscode.window.activeTextEditor;
+                    let langName = 'python'; // Default language if no editor is open
+
+                    if (editor) {
+                        langName = languageMap[editor.document.languageId]?.name || 'python';
+                    }
+                    
+                    let url = '';
+                    let payload = {};
+
+                    switch (message.mode) {
+                        case 'Intelligent Snippet':
+                            url = BACKEND_URLS.INTELLIGENT_SNIPPETS;
+                            payload = { context: message.prompt, language: langName };
+                            break;
+                        case 'Code Suggestion':
+                             url = BACKEND_URLS.CODE_SUGGESTION;
+                             payload = { prompt: message.prompt, language: langName };
+                             break;
+                        case 'Auto Completion':
+                            url = BACKEND_URLS.AUTO_COMPLETE;
+                            payload = { prompt: message.prompt };
+                            break;
+                    }
+                    
+                    try {
+                        const { data } : { data: BackendResponse } = await axios.post(url, payload);
+                        if (message.outputType === 'inline') {
+                            const editor = vscode.window.activeTextEditor;
+                            if (!editor) {
+                                vscode.window.showErrorMessage('Please open a file and place your cursor to insert code.');
+                                chatbotPanel?.webview.postMessage({ command: 'showError', message: 'No active file editor to insert code into.' });
+                                return;
+                            }
+
+                            let codeToInsert = '';
+                            if (message.mode === 'Intelligent Snippet' && data.code) {
+                                codeToInsert = data.code;
+                            } else if (message.mode === 'Code Suggestion' && data.response) {
+                                codeToInsert = data.response;
+                            } else if (message.mode === 'Auto Completion' && data.completed_code) {
+                                codeToInsert = data.completed_code;
+                            } else {
+                                // Fallback for unexpected response structures
+                                codeToInsert = JSON.stringify(data, null, 2);
+                            }
+                            
+                            editor.edit(editBuilder => {
+                                editBuilder.insert(editor.selection.active, codeToInsert);
+                            });
+
+                            chatbotPanel?.webview.postMessage({ command: 'codeInserted' });
+
+                        }
+                        else{
+                        chatbotPanel?.webview.postMessage({
+                            command: 'backendResponse',
+                            data: data,
+                            outputType: message.outputType,
+                            mode: message.mode
+                        });
+                    }
+                 } catch (error) {
+                         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+                         chatbotPanel?.webview.postMessage({ command: 'showError', message: `Failed to get response: ${errorMsg}` });
+                    }
+                    break;
+                }
+                
+                case 'insertCode': {
+                    const editor = vscode.window.activeTextEditor;
+                    if (!editor) {
+                        vscode.window.showErrorMessage('Please open and focus a file to insert code.');
+                        return;
+                    }
+                    const { code, blockId } = message;
+                    const selection = editor.selection;
+                    await editor.edit(editBuilder => {
+                       editBuilder.replace(selection, code);
+                       // Calculate the new range of the inserted code
+                       const endPosition = new vscode.Position(
+                           selection.start.line + code.split('\n').length - 1,
+                           (selection.start.line === editor.selection.end.line ? selection.start.character : 0) + code.split('\n').pop().length
+                       );
+                       // Store the range with the blockId
+                       insertedCodeRanges.set(blockId, new vscode.Range(selection.start, endPosition));
+                    });
+                    break;
+                }
+
+                case 'deleteCode': {
+                    const editor = vscode.window.activeTextEditor;
+                    if (!editor) {
+                        vscode.window.showErrorMessage('Please open and focus a file to delete code.');
+                        return;
+                    }
+                     const rangeToDelete = insertedCodeRanges.get(message.blockId);
+                     if (rangeToDelete) {
+                         await editor.edit(editBuilder => {
+                             editBuilder.delete(rangeToDelete);
+                         });
+                         insertedCodeRanges.delete(message.blockId); // Remove the entry after deletion
+                         vscode.window.showInformationMessage('Code deleted successfully.');
+                     } else {
+                         vscode.window.showInformationMessage('No inserted code to delete.');
+                     }
+                    break;
+                }
+            }
+        });
+    });
+    context.subscriptions.push(chatbotCommand);
 }
 
 function updateDecorations(editor: vscode.TextEditor) {
@@ -320,7 +471,7 @@ function updateDecorations(editor: vscode.TextEditor) {
     editor.setDecorations(watermarkDecoration, watermarkDecorations);
 }
 
-async function runAutocomplete(context: vscode.ExtensionContext, p0: string) {
+async function runAutocomplete(context: vscode.ExtensionContext, mode: 'inline' | 'panel') {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         vscode.window.showErrorMessage('❌ No active editor window. Please open a file.');
@@ -367,7 +518,7 @@ async function runAutocomplete(context: vscode.ExtensionContext, p0: string) {
     );
 }
 
-async function runInlineAutocomplete(context: vscode.ExtensionContext, p0: string) {
+async function runInlineAutocomplete(context: vscode.ExtensionContext, mode: 'inline' | 'panel') {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         vscode.window.showErrorMessage('❌ No active editor window. Please open a file.');
@@ -850,7 +1001,7 @@ async function revertToOriginalPrompt() {
         vscode.window.showErrorMessage("Failed to revert to original prompt: " + (e instanceof Error ? e.message : String(e)));
         }
     }
-     async function runIntelligentSnippet() {
+async function runIntelligentSnippet() {
   const pick = await vscode.window.showQuickPick(
     ['Panel Mode', 'Inline Mode'],
     {
