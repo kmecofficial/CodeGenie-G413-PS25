@@ -675,3 +675,163 @@ export function getWebviewContentAutoCompletion(data: BackendResponse): string {
 </body>
 </html>`;
 }
+export function getaboutviewContent(): string {
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>About CodeGenie</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-size: 14px;
+                margin: 0;
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+                height: 100vh;
+                color: white; /* Changed text color to white */
+                background-color: black; /* Changed background color to black */
+            }
+
+            .container {
+                max-width: 800px;
+                margin: auto;
+                padding: 25px;
+                background-color: #333; /* Darker background for content */
+                border-radius: 8px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Adjusted shadow for dark background */
+                text-align: center;
+                overflow-y: auto; /* Enable scrolling for content */
+            }
+
+            .header {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin-bottom: 25px;
+            }
+
+            h1 {
+                font-size: 2em;
+                color: #00BFFF; /* Kept highlight color, ensure it contrasts well */
+                margin-bottom: 10px;
+            }
+
+            h2 {
+                font-size: 1.5em;
+                color: #00BFFF; /* Kept highlight color */
+                margin-top: 25px;
+                margin-bottom: 10px;
+                text-align: left;
+            }
+            h3 {
+                font-size: 1.2em;
+                color: #00BFFF; /* Kept highlight color */
+                margin-top: 20px;
+                margin-bottom: 8px;
+                text-align: left;
+            }
+
+            p {
+                line-height: 1.6;
+                margin-bottom: 15px;
+                text-align: left;
+                color: #E0E0E0; /* Slightly off-white for body text */
+            }
+
+            ul {
+                list-style-type: disc;
+                margin-left: 20px;
+                margin-bottom: 15px;
+                text-align: left;
+            }
+
+            li {
+                margin-bottom: 8px;
+                color: #E0E0E0; /* Slightly off-white for list items */
+            }
+
+            a {
+                color: #61DAFB; /* A brighter blue for links for visibility on dark background */
+                text-decoration: none;
+            }
+
+            a:hover {
+                text-decoration: underline;
+            }
+
+            .footer-message {
+                margin-top: 20px;
+                font-size: 0.9em;
+                color: #AAAAAA; /* Lighter grey for description */
+                text-align: center;
+            }
+            .key {
+                background-color: #555; /* Darker background for key highlights */
+                padding: 2px 5px;
+                border-radius: 3px;
+                font-family: monospace;
+                font-weight: bold;
+                color: white; /* Ensure key text is white */
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>ℹ About CodeGenie</h1>
+            </div>
+
+            <p><strong>CodeGenie</strong> is an intelligent coding assistant that leverages the power of AI to help you write, complete, debug, and understand code more efficiently. Whether you're drafting new logic, improving existing snippets, or exploring creative implementations, CodeGenie is your reliable development partner.</p>
+
+            <h2>🔮 Key Features</h2>
+            <h3>🧠 1. Intelligent Snippet Generation</h3>
+            <p>Quickly generate context-aware code snippets tailored to your needs. Use this when you want the AI to generate a block of code based on your comments, function names, or logic hints.</p>
+            <ul>
+                <li><strong>⚡ Inline Snippet <span class="key">[Shift+I]</span>:</strong> Instantly inserts a relevant snippet at your cursor location without leaving your current view.</li>
+                <li><strong>💡 Panel Snippet <span class="key">[Shift+P]</span>:</strong> Opens a full panel with structured AI-generated snippet, detailed explanation, and sample usage.</li>
+            </ul>
+
+            <h3>✨ 2. Autocompletion</h3>
+            <p>Complete partial code or unfinished functions with intelligent context-based generation. Best used when you're in the middle of writing code and need a full working version of what you’ve started.</p>
+            <ul>
+                <li><strong>⚡ Inline Autocomplete <span class="key">[Alt+I]</span>:</strong> Instantly inserts the completed version of the input code. Ideal for fast-paced development or when working with short code files.</li>
+                <li><strong>📋 Panel Autocomplete <span class="key">[Alt+P]</span>:</strong> Opens a detailed panel showing:🐞 Debug Analysis,✅ Completed Code,💡 Explanation, 🚀 Example.</li>
+            </ul>
+            <p>Use this when you want thorough insight or suspect bugs in your code.</p>
+
+            <h3>💬 3. Code Suggestions</h3>
+            <p>Get multiple intelligent suggestions and toggle between them for flexible experimentation. Great when you're unsure of the best approach or want to compare alternatives.</p>
+            <ul>
+                <li><strong>⚡ Inline Suggestions <span class="key">[Ctrl+I]</span>:</strong> Installs suggestions inline for rapid comparison and direct editing.</li>
+                <li><strong>⏩ Quick Actions for Inline Suggestions:</strong>
+                    <ul>
+                        <li><span class="key">Press Key 1, 2, 3</span>: Insert suggestion 1, 2, or 3.</li>
+                        <li><span class="key">Ctrl+1, Ctrl+2, Ctrl+3</span>: Delete the corresponding suggestion.</li>
+                        <li><span class="key">Esc</span>: Invert prompt for better suggestions.</li>
+                    </ul>
+                </li>
+                <li><strong>📋 Panel Suggestions <span class="key">[Ctrl+P]</span>:</strong> Opens a suggestion panel showing multiple code versions with explanations.</li>
+            </ul>
+
+            <h2>🧭 Usage Guide</h2>
+            <ul>
+                <li><strong>🪄 Top-right Editor Buttons:</strong> Intelligent Snippet 📌, Autocompletion ✨, Code Suggestion ⚡, CodeGenie Chatbot 🤖</li>
+                <li><strong>🧠 Sub-feature Selection:</strong> When triggering features via buttons, a pop-up menu appears—use it to choose between inline or panel mode.</li>
+                <li><strong>🤖 CodeGenie Chatbot</strong> allows you to interact conversationally with the bot, ask follow-up queries, or generate ideas. It features a collapsible chat interface designed for productive assistance.</li>
+                <li><strong>✍ Provide Context:</strong> Comments, partial code, or logical hints to improve generation quality.</li>
+                <li><strong>🎯 Edit and Review:</strong> Use generated code as a base and fine-tune it to match your style or requirements.</li>
+            </ul>
+
+            <h2>🔗 Source Code</h2>
+            <p>CodeGenie is open source! You can find the repository on GitHub: <a href="https://github.com/kmecofficial/CodeGenie-G413-PS25" target="_blank">https://github.com/kmecofficial/CodeGenie-G413-PS25</a></p>
+
+            <p>Let CodeGenie be your coding companion — always ready to turn your ideas into working code. 🧞</p>
+        </div>
+    </body>
+    </html>
+    `;
+}

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import axios,{AxiosError} from 'axios';
-import { getWebviewContent ,getWebviewContentCodeSuggestion,getWebviewContentAutoCompletion} from './webviewContent';
+import { getWebviewContent ,getWebviewContentCodeSuggestion,getWebviewContentAutoCompletion, getaboutviewContent} from './webviewContent';
 import * as path from 'path';
 import { BACKEND_URLS }  from './urlconstants';
 
@@ -50,6 +50,50 @@ const languageMap: { [key: string]: { name: string, singleLineComment: string, b
 };
 export function activate(context: vscode.ExtensionContext) {
     console.log('CodeGenie is now active!🧞');
+    context.subscriptions.push(
+        vscode.commands.registerCommand('codegenie.showAutocompleteModes', async () => {
+            const pick = await vscode.window.showQuickPick(
+                ['Panel Mode', 'Inline Mode'],
+                {
+                    placeHolder: 'Select how to get code suggestions',
+                    canPickMany: false
+                }
+            );
+
+            if (pick === 'Panel Mode') {
+                runAutocomplete(context, 'panel');
+            } else if (pick === 'Inline Mode') {
+                runInlineAutocomplete(context, 'inline');
+            }
+        })
+    );
+     context.subscriptions.push(
+        vscode.commands.registerCommand('codegenie.showAboutPage', () => {
+            const aboutPanel = vscode.window.createWebviewPanel(
+                'codegenieAbout', 
+                'About CodeGenie', 
+                vscode.ViewColumn.Beside, 
+                { enableScripts: true } 
+            );
+            aboutPanel.webview.html = getaboutviewContent();
+        })
+    );
+    context.subscriptions.push(
+        vscode.commands.registerCommand('codegenie.showIntelligentSnippetModes', async () => {
+        const pick = await vscode.window.showQuickPick(
+            ['Panel Mode', 'Inline Mode'],
+            {
+            placeHolder: 'Select how to get code suggestions',
+            canPickMany: false
+            }
+        );
+        if (pick === 'Panel Mode') {
+            vscode.commands.executeCommand('codegenie.generateSnippet');
+        } else if (pick === 'Inline Mode') {
+             vscode.commands.executeCommand('codegenie.inlineGenerate');
+        }
+        })
+    );
 
     typingHintDecoration = vscode.window.createTextEditorDecorationType({
         isWholeLine: true,
@@ -106,6 +150,23 @@ export function activate(context: vscode.ExtensionContext) {
         updateDecorations(activeEditor);
     }
     console.log('CodeGenie extension is now active!');
+    context.subscriptions.push(
+        vscode.commands.registerCommand('codegenie.showCodeSuggestionModes', async () => {
+            const pick = await vscode.window.showQuickPick(
+                ['Panel Mode', 'Inline Mode'],
+                {
+                    placeHolder: 'Select how to get code suggestions',
+                    canPickMany: false
+                }
+            );
+
+            if (pick === 'Panel Mode') {
+                handleSuggestion(context, 'panel');
+            } else if (pick === 'Inline Mode') {
+                handleSuggestion(context, 'inline');
+            }
+        })
+    );
 
         context.subscriptions.push(
             vscode.commands.registerCommand('codegenie.PanelSuggestions', async () => {
@@ -259,7 +320,7 @@ function updateDecorations(editor: vscode.TextEditor) {
     editor.setDecorations(watermarkDecoration, watermarkDecorations);
 }
 
-async function runAutocomplete() {
+async function runAutocomplete(context: vscode.ExtensionContext, p0: string) {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         vscode.window.showErrorMessage('❌ No active editor window. Please open a file.');
@@ -306,7 +367,7 @@ async function runAutocomplete() {
     );
 }
 
-async function runInlineAutocomplete() {
+async function runInlineAutocomplete(context: vscode.ExtensionContext, p0: string) {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         vscode.window.showErrorMessage('❌ No active editor window. Please open a file.');
@@ -789,6 +850,21 @@ async function revertToOriginalPrompt() {
         vscode.window.showErrorMessage("Failed to revert to original prompt: " + (e instanceof Error ? e.message : String(e)));
         }
     }
+     async function runIntelligentSnippet() {
+  const pick = await vscode.window.showQuickPick(
+    ['Panel Mode', 'Inline Mode'],
+    {
+      placeHolder: 'Select how you want to generate the code',
+      canPickMany: false
+    }
+  );
+
+  if (pick === 'Panel Mode') {
+    vscode.commands.executeCommand('codegenie.generateSnippet');
+  } else if (pick === 'Inline Mode') {
+    vscode.commands.executeCommand('codegenie.inlineGenerate');
+  }
+}
 
 export function deactivate() { 
     console.log('CodeGenie extension deactivated.');
