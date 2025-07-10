@@ -27,7 +27,7 @@
     "onCommand:codegenie.showCodeSuggestionModes",
     "onCommand:codegenie.showAutocompleteModes",
     "onCommand:codegenie.showIntelligentSnippetModes",
-    "onCommand:codegenie.showAboutPage"
+    "onCommand:codegenie.showAboutPage",
   ],
   "main": "./out/extension.js",
   "contributes": {
