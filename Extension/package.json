@@ -27,22 +27,21 @@
     "onCommand:codegenie.showCodeSuggestionModes",
     "onCommand:codegenie.showAutocompleteModes",
     "onCommand:codegenie.showIntelligentSnippetModes",
-    "onCommand:codegenie.showAboutPage"
+    "onCommand:codegenie.showAboutPage",
+    "onCommand:codegenie.chatbotPanel"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "codegenie.inlineAutocomplete",
-        "title": "Inline Autocomplete",
-        "category": "CodeGenie",
-        "icon": "$(zap)"
+        "command": "codegenie.showAboutPage",
+        "title": "CodeGenie: About",
+        "icon": "$(info)"
       },
       {
-        "command": "codegenie.autocomplete",
-        "title": "Debug & Autocomplete",
-        "category": "CodeGenie",
-        "icon": "$(sparkle)"
+        "command": "codegenie.showIntelligentSnippetModes",
+        "title": "CodeGenie: Intelligent Snippet",
+        "icon": "$(lightbulb-sparkle)"
       },
       {
         "command": "codegenie.showAutocompleteModes",
@@ -51,8 +50,14 @@
       },
       {
         "command": "codegenie.showCodeSuggestionModes",
-        "title": "CodeGenie: Get Suggestions",
-        "icon": "$(lightbulb-sparkle)"
+        "title": "CodeGenie: Code Suggestions",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "codegenie.chatbotPanel",
+        "title": "CodeGenie Chatbot",
+        "category": "CodeGenie",
+        "icon": "$(hubot)"
       },
       {
         "command": "codegenie.PanelSuggestions",
@@ -91,22 +96,12 @@
         "title": "CodeGenie Inline: Revert to Original Prompt"
       },
       {
-        "command": "codegenie.showIntelligentSnippetModes",
-        "title": "CodeGenie: Intelligent Snippet",
-        "icon": "$(file-code)"
-      },
-      {
         "command": "codegenie.generateSnippet",
         "title": "Generate Code Snippet"
       },
       {
       "command": "codegenie.inlineGenerate",
       "title": "CodeGenie: Generate Code Inline"
-      },
-      {
-        "command": "codegenie.showAboutPage",
-        "title": "CodeGenie: About",
-        "icon": "$(info)"
       }
     ],
     "keybindings": [
@@ -189,7 +184,7 @@
          },
           {
           "when": "editorTextFocus",
-          "command": "codegenie.showCodeSuggestionModes",
+          "command": "codegenie.showIntelligentSnippetModes",
           "group": "navigation@2"
         },
         {
@@ -199,8 +194,13 @@
         },
         {
           "when": "editorTextFocus",
-          "command": "codegenie.showIntelligentSnippetModes",
+          "command": "codegenie.showCodeSuggestionModes",
           "group": "navigation@4"
+        },
+        {
+          "when": "editorTextFocus",
+          "command": "codegenie.chatbotPanel",
+          "group": "navigation@5"
         }
       ]
     }
