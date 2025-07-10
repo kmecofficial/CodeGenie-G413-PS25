@@ -23,7 +23,11 @@
     "onCommand:codegenie.inline.deleteSolution3",
     "onCommand:codegenie.inline.revertPrompt",
     "onCommand:codegenie.generateSnippet",
-    "onCommand:codegenie.inlineGenerate"
+    "onCommand:codegenie.inlineGenerate",
+    "onCommand:codegenie.showCodeSuggestionModes",
+    "onCommand:codegenie.showAutocompleteModes",
+    "onCommand:codegenie.showIntelligentSnippetModes",
+    "onCommand:codegenie.showAboutPage"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -39,6 +43,16 @@
         "title": "Debug & Autocomplete",
         "category": "CodeGenie",
         "icon": "$(sparkle)"
+      },
+      {
+        "command": "codegenie.showAutocompleteModes",
+        "title": "CodeGenie: Autocomplete",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "codegenie.showCodeSuggestionModes",
+        "title": "CodeGenie: Get Suggestions",
+        "icon": "$(lightbulb-sparkle)"
       },
       {
         "command": "codegenie.PanelSuggestions",
@@ -77,12 +91,22 @@
         "title": "CodeGenie Inline: Revert to Original Prompt"
       },
       {
+        "command": "codegenie.showIntelligentSnippetModes",
+        "title": "CodeGenie: Intelligent Snippet",
+        "icon": "$(file-code)"
+      },
+      {
         "command": "codegenie.generateSnippet",
         "title": "Generate Code Snippet"
       },
       {
       "command": "codegenie.inlineGenerate",
       "title": "CodeGenie: Generate Code Inline"
+      },
+      {
+        "command": "codegenie.showAboutPage",
+        "title": "CodeGenie: About",
+        "icon": "$(info)"
       }
     ],
     "keybindings": [
@@ -160,13 +184,23 @@
       "editor/title": [
         {
           "when": "editorTextFocus",
-          "command": "codegenie.inlineAutocomplete",
+          "command": "codegenie.showAboutPage",
           "group": "navigation@1"
+         },
+          {
+          "when": "editorTextFocus",
+          "command": "codegenie.showCodeSuggestionModes",
+          "group": "navigation@2"
         },
         {
           "when": "editorTextFocus",
-          "command": "codegenie.autocomplete",
-          "group": "navigation@2"
+          "command": "codegenie.showAutocompleteModes",
+          "group": "navigation@3"
+        },
+        {
+          "when": "editorTextFocus",
+          "command": "codegenie.showIntelligentSnippetModes",
+          "group": "navigation@4"
         }
       ]
     }
