@@ -1,3 +1,531 @@
+import * as vscode from 'vscode';
+
+export function getChatbotWebviewContent(logoSrc: string): string {
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>🤖 CodeGenie Chatbot</title>
+        <style>
+            :root {
+                --background-color: #1e1e1e;
+                --text-color: #d4d4d4;
+                --input-background: #3c3c3c;
+                --input-border: #5a5a5a;
+                --bot-message-bg: #2d2d2d;
+                --user-message-bg: #04395e;
+                --button-bg: #0e639c;
+                --button-hover-bg: #1177bb;
+                --button-secondary-bg: #3a3d41;
+                --button-secondary-hover-bg: #4a4d51;
+            }
+            
+            body {
+                font-family: var(--vscode-font-family, 'Segoe UI', 'Roboto', sans-serif);
+                background-color: var(--background-color);
+                color: var(--text-color);
+                margin: 0;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+                height: 100vh;
+            }
+            .header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 10px 20px;
+                background-color: var(--bot-message-bg);
+                border-bottom: 1px solid var(--input-border);
+            }
+            .header h1 {
+                font-size: 20px;
+                margin: 0;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .header img {
+                width: 24px;
+                height: 24px;
+            }
+            .header select {
+                background-color: var(--input-background);
+                color: var(--text-color);
+                border: 1px solid var(--input-border);
+                border-radius: 4px;
+                padding: 4px 8px;
+                font-family: inherit;
+                
+            }
+            #chat-container {
+                flex: 1;
+                padding: 20px;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+            }
+            .message {
+                max-width: 80%;
+                padding: 10px 15px;
+                border-radius: 12px;
+                line-height: 1.5;
+                word-wrap: break-word;
+            }
+            .bot {
+                align-self: flex-start;
+                background-color: var(--bot-message-bg);
+                border-top-left-radius: 0;
+            }
+            .loader 
+            {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #d4d4d4;
+            border-top: 3px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+            }
+            @keyframes spin 
+            {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+            }
+            .user {
+                align-self: flex-end;
+                background-color: var(--user-message-bg);
+                border-top-right-radius: 0;
+            }
+            .mcq-options {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-top: 10px;
+            }
+            .mcq-btn {
+                background-color: var(--button-secondary-bg);
+                color: var(--text-color);
+                border: 1px solid var(--input-border);
+                border-radius: 20px;
+                padding: 8px 15px;
+                cursor: pointer;
+                transition: background-color 0.2s;
+            }
+            .mcq-btn:hover {
+                background-color: var(--button-secondary-hover-bg);
+            }
+            .input-bar {
+                display: flex;
+                padding: 15px;
+                background-color: var(--bot-message-bg);
+                border-top: 1px solid var(--input-border);
+            }
+            textarea {
+                flex: 1;
+                resize: none;
+                padding: 10px;
+                border-radius: 6px;
+                border: 1px solid var(--input-border);
+                background-color: var(--input-background);
+                color: var(--text-color);
+                font-family: inherit;
+                font-size: 14px;
+                margin-right: 10px;
+            }
+            .send-btn {
+                padding: 10px 18px;
+                font-size: 16px;
+                background-color: var(--button-bg);
+                color: white;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+            }
+            .send-btn:hover {
+                background-color: var(--button-hover-bg);
+            }
+            pre {
+                background: #111;
+                padding: 1em;
+                border-radius: 4px;
+                overflow-x: auto;
+                white-space: pre-wrap;
+            }
+            .code-actions {
+                display: flex;
+                gap: 5px;
+                margin-top: 10px;
+            }
+            .code-actions button {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+            details {
+                border: 1px solid var(--input-border);
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+            summary {
+                cursor: pointer;
+                padding: 10px;
+                background-color: var(--button-secondary-bg);
+            }
+            .panel-content {
+                padding: 10px;
+            }
+        </style>
+    </head>
+    <body>
+    
+        <div class="header">
+            <h1>🤖 CodeGenie Chatbot</h1>
+            <select id="mode-selector">
+                <option value="General">General</option>
+                <option value="Intelligent Snippet">Intelligent Snippet</option>
+                <option value="Auto Completion">Auto Completion</option>
+                <option value="Code Suggestion">Code Suggestion</option>
+            </select>
+        </div>
+
+        <div id="chat-container">
+            <div class="message bot">Hello! I'm CodeGenie. How can I assist you today? Select a mode and type your prompt below.</div>
+        </div>
+
+        <div class="input-bar">
+            <textarea id="input" placeholder="Type your prompt here..."></textarea>
+            <button class="send-btn" onclick="send()">➤</button>
+        </div>
+
+        <script>
+            const vscode = acquireVsCodeApi();
+            const chatContainer = document.getElementById('chat-container');
+            const input = document.getElementById('input');
+            const modeSelector = document.getElementById('mode-selector');
+
+            let conversationState = {
+                prompt: null,
+                mode: null,
+                awaiting: null // 'mode' or 'output'
+            };
+
+            function addMessage(text, sender, element) {
+                const msg = document.createElement('div');
+                msg.className = 'message ' + sender;
+                if (text) msg.textContent = text;
+                if (element) msg.appendChild(element);
+                chatContainer.appendChild(msg);
+                msg.scrollIntoView({ behavior: 'smooth' });
+                return msg;
+            }
+            
+            function send() {
+                const text = input.value.trim();
+                if (!text) return;
+                addMessage(text, 'user');
+                input.value = '';
+
+                conversationState.prompt = text;
+                const selectedMode = modeSelector.value;
+
+                if (selectedMode === 'General') {
+                    conversationState.awaiting = 'mode';
+                    askForMode();
+                } else {
+                    conversationState.mode = selectedMode;
+                    conversationState.awaiting = 'output';
+                    askForOutputType();
+                }
+            }
+            
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    send();
+                }
+            });
+
+            function askForMode() {
+                const optionsContainer = document.createElement('div');
+                optionsContainer.className = 'mcq-options';
+                const modes = ['Intelligent Snippet', 'Auto Completion', 'Code Suggestion'];
+                modes.forEach(mode => {
+                    const btn = document.createElement('button');
+                    btn.className = 'mcq-btn';
+                    btn.textContent = mode;
+                    btn.onclick = () => {
+                        conversationState.mode = mode;
+                        addMessage('Selected mode: ' + mode, 'user');
+                        optionsContainer.remove();
+                        askForOutputType();
+                    };
+                    optionsContainer.appendChild(btn);
+                });
+                addMessage('Which mode would you like to proceed with?', 'bot', optionsContainer);
+            }
+
+            function askForOutputType() {
+                const optionsContainer = document.createElement('div');
+                optionsContainer.className = 'mcq-options';
+                const outputTypes = ['Inline Output', 'Panel Output'];
+                outputTypes.forEach(type => {
+                    const btn = document.createElement('button');
+                    btn.className = 'mcq-btn';
+                    btn.textContent = type;
+                    btn.onclick = () => {
+                        addMessage('Output choice: ' + type, 'user');
+                        optionsContainer.remove();
+                        callBackend(type.split(' ')[0].toLowerCase());
+                    };
+                    optionsContainer.appendChild(btn);
+                });
+                addMessage('Where do you want the output?', 'bot', optionsContainer);
+            }
+            
+            function callBackend(outputType) {
+                 addMessage('Thinking...', 'bot');
+                 vscode.postMessage({
+                    command: 'callBackend',
+                    prompt: conversationState.prompt,
+                    mode: conversationState.mode,
+                    outputType: outputType
+                 });
+            }
+            
+            function parseCodeSuggestions(responseText) {
+                const solutions = [];
+                // Regex to find "Solution X: <Header>" followed by code
+                const parts = responseText.split(/(Solution\\s*\\d+\\s*:\\s*(?:Using\\s*(?:functions|recursion|iteration))?)/);
+                
+                for (let i = 1; i < parts.length; i += 2) {
+                    const header = parts[i].trim();
+                    const body = (parts[i + 1] || '').trim();
+                    if (body) {
+                        solutions.push({ header: header, code: body });
+                    }
+                }
+                return solutions;
+            }
+
+            function createCodeBlock(data, mode) {
+                
+                const container = document.createElement('div');
+                const blockId = 'block-' + Date.now();
+                container.setAttribute('data-block-id', blockId);
+
+                // Helper to create a collapsible details element
+                function createCollapsibleSection(title, content, isOpen = false) {
+                    const details = document.createElement('details');
+                    details.style.marginBottom = '10px'; // Add some spacing between sections
+                    if (isOpen) {
+                        details.setAttribute('open', '');
+                    }
+
+                    const summary = document.createElement('summary');
+                    summary.textContent = title;
+                    details.appendChild(summary);
+
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'panel-content'; // Reuse existing panel-content style
+                    if (typeof content === 'string') {
+                        const pre = document.createElement('pre');
+                        pre.textContent = content;
+                        contentDiv.appendChild(pre);
+                    } else if (content instanceof HTMLElement) {
+                        contentDiv.appendChild(content);
+                    }
+                    details.appendChild(contentDiv);
+                    return details;
+                }
+
+                if (mode === 'Auto Completion' && typeof data === 'object') {
+                    // Debug Analysis
+                    const debugAnalysis = data.debug_explanation || 'No debug analysis was provided.';
+                    container.appendChild(createCollapsibleSection('🔍 Debug Analysis', debugAnalysis));
+
+                    // Autocompleted Code (open by default)
+                    const completedCode = data.completed_code || JSON.stringify(data, null, 2);
+                    const completedCodeContainer = document.createElement('div');
+                    const preCompletedCode = document.createElement('pre');
+                    preCompletedCode.textContent = completedCode;
+                    completedCodeContainer.appendChild(preCompletedCode);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'code-actions';
+                    
+                    const copyBtn = document.createElement('button');
+                    copyBtn.textContent = 'Copy';
+                    copyBtn.className = 'mcq-btn';
+                    copyBtn.onclick = () => navigator.clipboard.writeText(completedCode);
+
+                    const insertBtn = document.createElement('button');
+                    insertBtn.textContent = 'Insert';
+                    insertBtn.className = 'mcq-btn';
+                    insertBtn.onclick = () => vscode.postMessage({ command: 'insertCode', code: completedCode, blockId });
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.className = 'mcq-btn';
+                    deleteBtn.onclick = () => vscode.postMessage({ command: 'deleteCode', blockId });
+
+                    actions.append(copyBtn, insertBtn, deleteBtn);
+                    completedCodeContainer.appendChild(actions);
+
+                    container.appendChild(createCollapsibleSection('✅ Autocompleted Code', completedCodeContainer, true));
+
+                    // Explanation
+                    const explanation = data.explanation || 'No explanation was provided.';
+                    container.appendChild(createCollapsibleSection('📖 Explanation', explanation));
+
+                    // Example
+                    const example = data.example || 'No example was provided.';
+                    container.appendChild(createCollapsibleSection('💡 Example', example));
+
+                } else if (mode === 'Intelligent Snippet' && typeof data === 'object') {
+                    const displayCode = data.code || JSON.stringify(data, null, 2);
+                    const pre = document.createElement('pre');
+                    pre.textContent = displayCode;
+                    container.appendChild(pre);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'code-actions';
+                    
+                    const copyBtn = document.createElement('button');
+                    copyBtn.textContent = 'Copy';
+                    copyBtn.className = 'mcq-btn';
+                    copyBtn.onclick = () => navigator.clipboard.writeText(displayCode);
+
+                    const insertBtn = document.createElement('button');
+                    insertBtn.textContent = 'Insert';
+                    insertBtn.className = 'mcq-btn';
+                    insertBtn.onclick = () => vscode.postMessage({ command: 'insertCode', code: displayCode, blockId });
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.className = 'mcq-btn';
+                    deleteBtn.onclick = () => vscode.postMessage({ command: 'deleteCode', blockId });
+
+                    actions.append(copyBtn, insertBtn, deleteBtn);
+                    pre.appendChild(actions);
+                    container.appendChild(createCollapsibleSection('Snippet', pre, true));
+
+                } 
+                    else if (mode === 'Code Suggestion') {
+                    const solutions = parseCodeSuggestions(data.response || '');
+                    if (solutions.length === 0) {
+                        const pre = document.createElement('pre');
+                        pre.textContent = "No code suggestions found.";
+                        container.appendChild(pre);
+                        return container;
+                    }
+
+                    solutions.forEach((sol, idx) => {
+                        const solutionBox = document.createElement('div');
+                        solutionBox.className = 'solution-box';
+                        
+                        const header = document.createElement('h4');
+                        header.textContent = sol.header;
+                        solutionBox.appendChild(header);
+
+                        const pre = document.createElement('pre');
+                        pre.textContent = sol.code;
+                        solutionBox.appendChild(pre);
+
+                        const actions = document.createElement('div');
+                        actions.className = 'code-actions';
+                        
+                        // Generate a unique ID for each code block
+                        // Escaped backticks for the template literal
+                        const blockId = 'block-' + Date.now() + '-' + idx;
+
+                        const copyBtn = document.createElement('button');
+                        copyBtn.textContent = 'Copy';
+                        copyBtn.className = 'mcq-btn';
+                        copyBtn.onclick = () => navigator.clipboard.writeText(sol.code);
+
+                        const insertBtn = document.createElement('button');
+                        insertBtn.textContent = 'Insert';
+                        insertBtn.className = 'mcq-btn';
+                        insertBtn.onclick = () => vscode.postMessage({ command: 'insertCode', code: sol.code, blockId: blockId });
+                        
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.textContent = 'Delete';
+                        deleteBtn.className = 'mcq-btn';
+                        deleteBtn.onclick = () => {
+                            vscode.postMessage({ command: 'deleteCode', blockId: blockId });
+                            
+                        };
+
+                        actions.append(copyBtn, insertBtn, deleteBtn);
+                        solutionBox.appendChild(actions);
+                        container.appendChild(solutionBox);
+                        container.appendChild(createCollapsibleSection('Solution', solutionBox, true));
+                    });                    
+                } 
+                return container;
+            }
+
+            window.addEventListener('message', event => {
+                const message = event.data;
+                // Remove "Thinking..." message
+                const thinkingMsg = Array.from(chatContainer.querySelectorAll('.message.bot')).pop();
+                if (thinkingMsg && thinkingMsg.textContent=='Thinking...') {
+                    thinkingMsg.remove();
+                }
+
+                switch(message.command) {
+                    case 'backendResponse':
+                        if (message.outputType === 'inline') {
+                            // For inline, it will still display only the 'completed_code' if mode is Auto Completion
+                            // The request was specifically for the *panel* output to be structured.
+                            let codeToDisplay = '';
+                            if (message.mode === 'Auto Completion' && typeof message.data === 'object' && message.data.completed_code) {
+                                codeToDisplay = message.data.completed_code;
+                            } else if (message.mode === 'Intelligent Snippet' && typeof message.data === 'object' && message.data.code) {
+                                codeToDisplay = message.data.code;
+                            } else if (message.mode === 'Code Suggestion' && typeof message.data === 'object' && message.data.response) {
+                                codeToDisplay = message.data.response;
+                            } else {
+                                codeToDisplay = typeof message.data === 'object' ? JSON.stringify(message.data, null, 2) : String(message.data);
+                            }
+                            const pre = document.createElement('pre');
+                            pre.textContent = codeToDisplay;
+                            addMessage(null, 'bot', pre); // Add just the code block for inline
+                        } else { // panel
+                            // This is where the structured output for Auto Completion will appear.
+                            // Pass the entire message.data to createCodeBlock for Auto Completion mode.
+                            const details = document.createElement('details');
+                            const summary = document.createElement('summary');
+                            summary.textContent = 'CodeGenie Response';
+                            details.appendChild(summary);
+
+                           
+                            const panelContent = document
+                            .createElement('div');
+                            panelContent.className = 'panel-content';
+                            const codeBlock = createCodeBlock(message.data, message.mode);
+                            panelContent.appendChild(codeBlock);
+                            //const detailsWrapper = document.createElement('div'); // A wrapper for the details elements
+                            details.appendChild(panelContent); // Append the container generated by createCodeBlock
+                            addMessage(null, 'bot', panelContent);
+                        }
+                        break;
+                    case 'showError':
+                        addMessage('Error: ' + message.message, 'bot');
+                        break;
+                }
+            });
+
+        </script>
+    </body>
+    </html>
+    `;
+}
+
 export function getWebviewContent(logoSrc: string): string {
     return `
     <!DOCTYPE html>
@@ -674,4 +1202,164 @@ export function getWebviewContentAutoCompletion(data: BackendResponse): string {
     </script>
 </body>
 </html>`;
+}
+export function getaboutviewContent(): string {
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>About CodeGenie</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-size: 14px;
+                margin: 0;
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+                height: 100vh;
+                color: white; /* Changed text color to white */
+                background-color: black; /* Changed background color to black */
+            }
+
+            .container {
+                max-width: 800px;
+                margin: auto;
+                padding: 25px;
+                background-color: #333; /* Darker background for content */
+                border-radius: 8px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Adjusted shadow for dark background */
+                text-align: center;
+                overflow-y: auto; /* Enable scrolling for content */
+            }
+
+            .header {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin-bottom: 25px;
+            }
+
+            h1 {
+                font-size: 2em;
+                color: #00BFFF; /* Kept highlight color, ensure it contrasts well */
+                margin-bottom: 10px;
+            }
+
+            h2 {
+                font-size: 1.5em;
+                color: #00BFFF; /* Kept highlight color */
+                margin-top: 25px;
+                margin-bottom: 10px;
+                text-align: left;
+            }
+            h3 {
+                font-size: 1.2em;
+                color: #00BFFF; /* Kept highlight color */
+                margin-top: 20px;
+                margin-bottom: 8px;
+                text-align: left;
+            }
+
+            p {
+                line-height: 1.6;
+                margin-bottom: 15px;
+                text-align: left;
+                color: #E0E0E0; /* Slightly off-white for body text */
+            }
+
+            ul {
+                list-style-type: disc;
+                margin-left: 20px;
+                margin-bottom: 15px;
+                text-align: left;
+            }
+
+            li {
+                margin-bottom: 8px;
+                color: #E0E0E0; /* Slightly off-white for list items */
+            }
+
+            a {
+                color: #61DAFB; /* A brighter blue for links for visibility on dark background */
+                text-decoration: none;
+            }
+
+            a:hover {
+                text-decoration: underline;
+            }
+
+            .footer-message {
+                margin-top: 20px;
+                font-size: 0.9em;
+                color: #AAAAAA; /* Lighter grey for description */
+                text-align: center;
+            }
+            .key {
+                background-color: #555; /* Darker background for key highlights */
+                padding: 2px 5px;
+                border-radius: 3px;
+                font-family: monospace;
+                font-weight: bold;
+                color: white; /* Ensure key text is white */
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>ℹ️ About CodeGenie</h1>
+            </div>
+
+            <p><strong>CodeGenie</strong> is an intelligent coding assistant that leverages the power of AI to help you write, complete, debug, and understand code more efficiently. Whether you're drafting new logic, improving existing snippets, or exploring creative implementations, CodeGenie is your reliable development partner.</p>
+
+            <h2>🔮 Key Features</h2>
+            <h3>💡 1. Intelligent Snippet Generation</h3>
+            <p>Quickly generate context-aware code snippets tailored to your needs. Use this when you want the AI to generate a block of code based on your comments, function names, or logic hints.</p>
+            <ul>
+                <li><strong>⚡ Inline Snippet <span class="key">[Shift+I]</span>:</strong> Instantly inserts a relevant snippet at your cursor location without leaving your current view.</li>
+                <li><strong>📋 Panel Snippet <span class="key">[Shift+P]</span>:</strong> Opens a full panel with structured AI-generated snippet, detailed explanation, and sample usage.</li>
+            </ul>
+
+            <h3>✨ 2. Autocompletion</h3>
+            <p>Complete partial code or unfinished functions with intelligent context-based generation. Best used when you're in the middle of writing code and need a full working version of what you’ve started.</p>
+            <ul>
+                <li><strong>⚡ Inline Autocomplete <span class="key">[Alt+I]</span>:</strong> Instantly inserts the completed version of the input code. Ideal for fast-paced development or when working with short code files.</li>
+                <li><strong>📋 Panel Autocomplete <span class="key">[Alt+P]</span>:</strong> Opens a detailed panel showing:🐞 Debug Analysis,✅ Completed Code,💡 Explanation, 🚀 Example.</li>
+            </ul>
+            <p>Use this when you want thorough insight or suspect bugs in your code.</p>
+
+            <h3>💬 3. Code Suggestions</h3>
+            <p>Get multiple intelligent suggestions and toggle between them for flexible experimentation. Great when you're unsure of the best approach or want to compare alternatives.</p>
+            <ul>
+                <li><strong>⚡ Inline Suggestions <span class="key">[Ctrl+I]</span>:</strong> Installs suggestions inline for rapid comparison and direct editing.</li>
+                <li><strong>⏩ Quick Actions for Inline Suggestions:</strong>
+                    <ul>
+                        <li><span class="key">Press Key 1, 2, 3</span>: Insert suggestion 1, 2, or 3.</li>
+                        <li><span class="key">Ctrl+1, Ctrl+2, Ctrl+3</span>: Delete the corresponding suggestion.</li>
+                        <li><span class="key">Esc</span>: Invert prompt for better suggestions.</li>
+                    </ul>
+                </li>
+                <li><strong>📋 Panel Suggestions <span class="key">[Ctrl+P]</span>:</strong> Opens a suggestion panel showing multiple code versions with explanations.</li>
+            </ul>
+
+            <h2>🧭 Usage Guide</h2>
+            <ul>
+                <li><strong>🪄 Top-right Editor Buttons:</strong> Intelligent Snippet 💡, Autocompletion ✨, Code Suggestion 🗎, CodeGenie Chatbot 🤖</li>
+                <li><strong>🧠 Sub-feature Selection:</strong> When triggering features via buttons, a pop-up menu appears—use it to choose between inline or panel mode.</li>
+                <li><strong>🤖 CodeGenie Chatbot</strong> allows you to interact conversationally with the bot, ask follow-up queries, or generate ideas. It features a collapsible chat interface designed for productive assistance.</li>
+                <li><strong>✍ Provide Context:</strong> Comments, partial code, or logical hints to improve generation quality.</li>
+                <li><strong>🎯 Edit and Review:</strong> Use generated code as a base and fine-tune it to match your style or requirements.</li>
+            </ul>
+
+            <h2>🔗 Source Code</h2>
+            <p>CodeGenie is open source! You can find the repository on GitHub: <a href="https://github.com/kmecofficial/CodeGenie-G413-PS25" target="_blank">https://github.com/kmecofficial/CodeGenie-G413-PS25</a></p>
+
+            <p>Let CodeGenie be your coding companion — always ready to turn your ideas into working code. 🧞</p>
+        </div>
+    </body>
+    </html>
+    `;
 }

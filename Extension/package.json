@@ -23,22 +23,41 @@
     "onCommand:codegenie.inline.deleteSolution3",
     "onCommand:codegenie.inline.revertPrompt",
     "onCommand:codegenie.generateSnippet",
-    "onCommand:codegenie.inlineGenerate"
+    "onCommand:codegenie.inlineGenerate",
+    "onCommand:codegenie.showCodeSuggestionModes",
+    "onCommand:codegenie.showAutocompleteModes",
+    "onCommand:codegenie.showIntelligentSnippetModes",
+    "onCommand:codegenie.showAboutPage",
+    "onCommand:codegenie.chatbotPanel"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "codegenie.inlineAutocomplete",
-        "title": "Inline Autocomplete",
-        "category": "CodeGenie",
-        "icon": "$(zap)"
+        "command": "codegenie.showAboutPage",
+        "title": "CodeGenie: About",
+        "icon": "$(info)"
       },
       {
-        "command": "codegenie.autocomplete",
-        "title": "Debug & Autocomplete",
-        "category": "CodeGenie",
+        "command": "codegenie.showIntelligentSnippetModes",
+        "title": "CodeGenie: Intelligent Snippet",
+        "icon": "$(lightbulb-sparkle)"
+      },
+      {
+        "command": "codegenie.showAutocompleteModes",
+        "title": "CodeGenie: Autocomplete",
         "icon": "$(sparkle)"
+      },
+      {
+        "command": "codegenie.showCodeSuggestionModes",
+        "title": "CodeGenie: Code Suggestions",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "codegenie.chatbotPanel",
+        "title": "CodeGenie Chatbot",
+        "category": "CodeGenie",
+        "icon": "$(hubot)"
       },
       {
         "command": "codegenie.PanelSuggestions",
@@ -160,13 +179,28 @@
       "editor/title": [
         {
           "when": "editorTextFocus",
-          "command": "codegenie.inlineAutocomplete",
+          "command": "codegenie.showAboutPage",
           "group": "navigation@1"
+         },
+          {
+          "when": "editorTextFocus",
+          "command": "codegenie.showIntelligentSnippetModes",
+          "group": "navigation@2"
         },
         {
           "when": "editorTextFocus",
-          "command": "codegenie.autocomplete",
-          "group": "navigation@2"
+          "command": "codegenie.showAutocompleteModes",
+          "group": "navigation@3"
+        },
+        {
+          "when": "editorTextFocus",
+          "command": "codegenie.showCodeSuggestionModes",
+          "group": "navigation@4"
+        },
+        {
+          "when": "editorTextFocus",
+          "command": "codegenie.chatbotPanel",
+          "group": "navigation@5"
         }
       ]
     }
