@@ -15,20 +15,16 @@ try:
     )
 except Exception as e:
     raise RuntimeError(f"\nError loading model : {e}")
-
 def generate_code(context: str, language: str = "python") -> str:
     if not context or not isinstance(context, str):
         return "\nError: Invalid input context. Empty text given."
-
     try:
         prompt = (
         f"Generate valid and complete {language} code based on the following request.\n"
         f"Only return valid {language} code with no explanations or comments.\n"
         f"Request is :\n{context}\n"
         )
-
         inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-
         outputs = model.generate(
             **inputs,
             max_new_tokens=1024,
@@ -36,10 +32,8 @@ def generate_code(context: str, language: str = "python") -> str:
             top_p=0.7,
             do_sample=True
         )
-
         generated = tokenizer.decode(outputs[0], skip_special_tokens=True)
         print("Raw generated output:\n", generated)
-
         match = re.search(r"```(?:\w+)?\n(.+?)```", generated, re.DOTALL)
         if match:
             extracted_code = match.group(1).strip()
@@ -48,11 +42,9 @@ def generate_code(context: str, language: str = "python") -> str:
         else:
             print("No fenced code block found. Returning full output.\n")
             return generated.strip()
-
     except Exception as e:
         print("Error during code generation:", str(e))
         return f"\nError during code generation: {str(e)}"
-    
 def extract_json_object(text: str):
     """
     Finds and extracts the first complete JSON object from a string by balancing braces.
@@ -61,16 +53,13 @@ def extract_json_object(text: str):
     if start_index == -1:
         logging.warning("No starting '{' found in the text.")
         return None
-
     text_slice = text[start_index:]
     open_braces = 0
-    
     for i, char in enumerate(text_slice):
         if char == '{':
             open_braces += 1
         elif char == '}':
             open_braces -= 1
-        
         if open_braces == 0:
             json_string = text_slice[:i+1]
             try:

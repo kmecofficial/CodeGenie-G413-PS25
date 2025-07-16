@@ -9,7 +9,6 @@ app = Flask(__name__)
 CORS(app)
 
 @app.route('/generate-snippet', methods=['POST'])
-
 def generate_snippet():
     """
     Endpoint to generate a code snippet based on the given context and programming language.
@@ -25,31 +24,23 @@ def generate_snippet():
     """
     try:
         print("Received a request to /generate-snippet")
-
         if not request.is_json:
             print("Invalid request: not JSON")
             return jsonify({"error": "Request must be JSON"}), 400
-
         data = request.get_json()
         print("Request data:", data)
-
         context = data.get("context", "")
         language = data.get("language", "python")
-
         if not context:
             print("Missing context in request")
             return jsonify({"error": "Context is required"}), 400
-
         print(f"Generating code for language: {language}")
         code = generate_code(context, language)
-
         print("Code generation successful")
         return jsonify({"code": code})
-
     except KeyError as ke:
         print(f"KeyError: {ke}")
         return jsonify({"error": f"Missing field: {str(ke)}"}), 400
-
     except Exception as e:
         print(f"Exception occurred: {e}")
         return jsonify({"error": "Something went wrong", "details": str(e)}), 500
@@ -58,13 +49,11 @@ def generate_snippet():
 def generate_codesuggestion():
     """
     Endpoint to generate 3 distinct versions of the same function/class using different coding techniques.
-
     Expected JSON Input:
         {
             "prompt": "<function or class definition>",
             "language": "<programming language>"
         }
-
     Returns:
         JSON containing three variations:
             - Using functions
@@ -74,12 +63,10 @@ def generate_codesuggestion():
     data = request.get_json()
     prompt = data.get('prompt', '').strip()
     language = data.get('language', '').strip()
-
     if not prompt:
         return jsonify({'error': 'Prompt is required.'}), 400
     if not language:
         return jsonify({'error': 'Language is required.'}), 400
-
     multi_prompt = (
         f"The user has selected the following {language} function or class definition:\n"
         f"\n{prompt}\n\n"
@@ -92,11 +79,9 @@ def generate_codesuggestion():
         "Each solution must begin with the exact same signature as the input.\n"
         "Output only clean code blocks, no explanations, no markdown, and no extra text."
     )
-
     try:
         messages = [{'role': 'user', 'content': multi_prompt}]
         inputs = tokenizer.apply_chat_template(messages, add_generation_prompt=True, return_tensors="pt").to(model.device)
-
         outputs = model.generate(
             inputs,
             max_new_tokens=700,
@@ -106,17 +91,13 @@ def generate_codesuggestion():
             num_return_sequences=1,
             eos_token_id=tokenizer.eos_token_id
         )
-
         generated_text = tokenizer.decode(outputs[0][len(inputs[0]):], skip_special_tokens=True).strip()
         cleaned_output = re.sub(r'```(?:[a-zA-Z]+)?\n?', '', generated_text).replace("<|end|>", "").strip()
-
         print(f"🧠 Generated:\n{cleaned_output}")
         return jsonify({'response': cleaned_output})
-
     except Exception as e:
         print(f"❌ Error in generation: {e}")
         return jsonify({'error': str(e)}), 500
-
 
 @app.route('/generate-autocomplete', methods=['POST'])
 def generate_autocomplete():
@@ -126,19 +107,16 @@ def generate_autocomplete():
         - a corrected version,
         - a usage explanation,
         - and an example.
-
     Expected JSON Input:
         {
             "prompt": "<incomplete or incorrect code>"
         }
-
     Returns:
         JSON with keys: debug_explanation, completed_code, explanation, example.
     """
     try:
         data = request.json
         user_code = data.get("prompt", "")
-
         if not user_code or not user_code.strip():
             logging.warning("Received an empty prompt.")
             return jsonify({'error': 'Prompt is empty.'}), 400
@@ -164,12 +142,10 @@ Ensure the JSON is well-formed and contains ALL of the following keys, in this e
 
 User's code to analyze:
 {user_code}
-
 JSON Response:
 """
         messages = [{"role": "user", "content": prompt_template}]
         input_ids = tokenizer.apply_chat_template(messages, add_generation_prompt=True, return_tensors="pt").to(model.device)
-
         with torch.no_grad():
             outputs = model.generate(
                 input_ids,
@@ -181,13 +157,9 @@ JSON Response:
                 eos_token_id=tokenizer.eos_token_id,
                 pad_token_id=tokenizer.eos_token_id
             )
-
         raw_output_text = tokenizer.decode(outputs[0][input_ids.shape[1]:], skip_special_tokens=True).strip()
-        
         logging.info(f"--- Raw Model Output ---\n{raw_output_text}\n------------------------")
-
         output_json = extract_json_object(raw_output_text)
-
         if not output_json:
             logging.error(f"Failed to extract valid JSON from model output. Raw output: {raw_output_text}")
             return jsonify({'error': 'Failed to parse AI model response. Expected JSON but got malformed output.'}), 500
@@ -197,10 +169,8 @@ JSON Response:
             "explanation": output_json.get("explanation", "No explanation was provided by the model."),
             "example": output_json.get("example", "No example was provided.")
         }
-
         logging.info(f"Successfully parsed and prepared JSON response: {final_response}")
         return jsonify(final_response)
-
     except Exception as e:
         logging.error(f"An unexpected error occurred during generation: {e}", exc_info=True)
         return jsonify({'error': f'An unexpected error occurred on the server: {str(e)}'}), 500
